@@ -1,0 +1,378 @@
+<!DOCTYPE1 html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoHunt PRO</title>
+    <!-- Tailwind CSS za moderan dizajn -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet Karte (Alternativa za Google Maps, besplatno i bez API ključa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 300px; width: 100%; border-radius: 0.5rem; }
+        .compass-arrow {
+            transition: transform 0.2s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans min-h-screen">
+
+    <!-- Navigacija -->
+    <nav class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center shadow-lg">
+        <h1 class="text-2xl font-black tracking-wider text-emerald-400">GeoHunt <span class="text-white bg-emerald-600 px-2 py-0.5 rounded text-sm">PRO</span></h1>
+        <div>
+            <button onclick="showScreen('home')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded mr-2 text-sm">Početna</button>
+            <button onclick="showScreen('editor')" class="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 rounded text-sm font-bold">Editor (+)</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 max-w-2xl">
+
+        <!-- 1. POČETNI EKRAN (Upis ID-a) -->
+        <div id="screen-home" class="space-y-6 text-center py-10">
+            <div class="space-y-2">
+                <h2 class="text-3xl font-extrabold">Dobrodošli u GeoHunt PRO</h2>
+                <p class="text-slate-400">Unesite ID avanture i započnite potragu za blagom!</p>
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-4">
+                <input type="text" id="game-id-input" placeholder="Unesite ID avanture (npr. GH-1234)" class="w-full p-3 rounded bg-slate-900 border border-slate-600 text-white text-center text-lg font-mono focus:outline-none focus:border-emerald-500">
+                <button onclick="loadGame()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold py-3 rounded-lg text-lg transition">Započni Igru 🚀</button>
+            </div>
+        </div>
+
+        <!-- 2. EDITOR EKRAN (Izrada potrage) -->
+        <div id="screen-editor" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold text-emerald-400">Editor Avanture</h2>
+            
+            <div class="bg-slate-800 p-4 rounded-xl space-y-4 border border-slate-700">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Naziv Avanture</label>
+                    <input type="text" id="hunt-title" placeholder="Npr. Potraga po Starom Gradu" class="w-full p-2 rounded bg-slate-900 border border-slate-600">
+                </div>
+
+                <hr class="border-slate-700">
+
+                <h3 class="font-bold text-lg">Dodaj Novi Korak/Slajd</h3>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Tip Koraka</label>
+                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-2 rounded bg-slate-900 border border-slate-600">
+                        <option value="info">Info Slajd (Tekst/Slika)</option>
+                        <option value="location">Lokacija + Kompas</option>
+                        <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
+                        <option value="quiz-open">Pitanje otvorenog tipa</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Naslov/Tekst Koraka</label>
+                    <textarea id="step-text" placeholder="Unesite tekst ili pitanje..." class="w-full p-2 rounded bg-slate-900 border border-slate-600 h-20"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">URL Slike (Opcionalno)</label>
+                    <input type="text" id="step-image" placeholder="https://primjer.com/slika.jpg" class="w-full p-2 rounded bg-slate-900 border border-slate-600">
+                </div>
+
+                <!-- Polja za lokaciju -->
+                <div id="field-location" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3">
+                    <p class="text-xs text-emerald-400">Kliknite na kartu ili unesite koordinate odredišta:</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" step="any" id="step-lat" placeholder="Geografska Širina (Lat)" class="p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                        <input type="number" step="any" id="step-lng" placeholder="Geografska Dužina (Lng)" class="p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                    </div>
+                </div>
+
+                <!-- Polja za Višestruki Izbor -->
+                <div id="field-quiz-mc" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3">
+                    <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                    <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                    <input type="text" id="mc-3" placeholder="Opcija C" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                    <select id="mc-correct" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                        <option value="0">Točna opcija: Opcija A</option>
+                        <option value="1">Točna opcija: Opcija B</option>
+                        <option value="2">Točna opcija: Opcija C</option>
+                    </select>
+                </div>
+
+                <!-- Polja za Otvoreno Pitanje -->
+                <div id="field-quiz-open" class="hidden border-l-2 border-emerald-500 pl-3">
+                    <input type="text" id="open-answer" placeholder="Točan odgovor (npr. Zagreb)" class="w-full p-2 rounded bg-slate-900 border border-slate-600 text-sm">
+                </div>
+
+                <button onclick="addStep()" class="w-full bg-slate-700 hover:bg-slate-600 py-2 rounded font-bold">+ Dodaj Korak u Avanturu</button>
+            </div>
+
+            <!-- Lista dodanih koraka -->
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <h3 class="font-bold mb-2">Popis dodanih koraka:</h3>
+                <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300"></ul>
+            </div>
+
+            <button onclick="publishHunt()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-extrabold py-3 rounded-lg text-lg">Objavi Avanturu & Dohvati ID 🎯</button>
+        </div>
+
+        <!-- 3. GAMEPLAY EKRAN (Igranje) -->
+        <div id="screen-game" class="hidden space-y-6">
+            <div class="flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700">
+                <span id="game-title-display" class="font-bold text-emerald-400"></span>
+                <span id="game-progress" class="text-sm bg-slate-700 px-2 py-1 rounded">Korak 1/1</span>
+            </div>
+
+            <!-- Glavni Sadržaj Koraka -->
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                
+                <p id="play-text" class="text-lg font-medium text-center"></p>
+
+                <img id="play-image" src="" class="hidden w-full h-48 object-cover rounded-lg border border-slate-600">
+
+                <!-- Kompas i Karta (samo za lokacijske korake) -->
+                <div id="play-location-container" class="hidden space-y-4">
+                    <div class="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-lg">
+                        <span class="text-xs text-slate-400 mb-2">KOMPAS PREMA CILJU</span>
+                        <!-- Kazaljka Kompasa -->
+                        <div id="compass-arrow" class="compass-arrow text-5xl">⬆️</div>
+                        <span id="distance-display" class="text-sm font-bold text-emerald-400 mt-2">Udaljenost: -- m</span>
+                    </div>
+                    <div id="map"></div>
+                </div>
+
+                <!-- Višestruki izbor -->
+                <div id="play-mc-container" class="hidden space-y-2"></div>
+
+                <!-- Otvoreno Pitanje -->
+                <div id="play-open-container" class="hidden space-y-2">
+                    <input type="text" id="open-input" placeholder="Vaš odgovor..." class="w-full p-3 rounded bg-slate-900 border border-slate-600">
+                    <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-900 font-bold py-2 rounded">Potvrdi Odgovor</button>
+                </div>
+
+                <button id="next-btn" onclick="nextStep()" class="hidden w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold py-3 rounded-lg mt-4">Sljedeći Korak ➡️</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA STATE ---
+        let currentHunt = { id: '', title: '', steps: [] };
+        let tempSteps = [];
+        let currentStepIndex = 0;
+        let map = null, userMarker = null, targetMarker = null;
+
+        // --- NAVIGATION ---
+        function showScreen(screen) {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-editor').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById(`screen-${screen}`).classList.remove('hidden');
+            if(screen === 'editor') toggleEditorFields();
+        }
+
+        // --- EDITOR LOGIC ---
+        function toggleEditorFields() {
+            const type = document.getElementById('step-type').value;
+            document.getElementById('field-location').classList.add('hidden');
+            document.getElementById('field-quiz-mc').classList.add('hidden');
+            document.getElementById('field-quiz-open').classList.add('hidden');
+
+            if (type === 'location') document.getElementById('field-location').classList.remove('hidden');
+            if (type === 'quiz-mc') document.getElementById('field-quiz-mc').classList.remove('hidden');
+            if (type === 'quiz-open') document.getElementById('field-quiz-open').classList.remove('hidden');
+        }
+
+        function addStep() {
+            const type = document.getElementById('step-type').value;
+            const text = document.getElementById('step-text').value;
+            const image = document.getElementById('step-image').value;
+
+            let step = { type, text, image };
+
+            if (type === 'location') {
+                step.lat = parseFloat(document.getElementById('step-lat').value) || 45.815;
+                step.lng = parseFloat(document.getElementById('step-lng').value) || 15.981;
+            } else if (type === 'quiz-mc') {
+                step.options = [
+                    document.getElementById('mc-1').value,
+                    document.getElementById('mc-2').value,
+                    document.getElementById('mc-3').value
+                ];
+                step.correct = parseInt(document.getElementById('mc-correct').value);
+            } else if (type === 'quiz-open') {
+                step.answer = document.getElementById('open-answer').value.trim().toLowerCase();
+            }
+
+            tempSteps.push(step);
+            updateEditorList();
+            
+            // Clear input
+            document.getElementById('step-text').value = '';
+            document.getElementById('step-image').value = '';
+        }
+
+        function updateEditorList() {
+            const list = document.getElementById('editor-steps-list');
+            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-900 p-2 rounded">${i+1}. [${s.type.toUpperCase()}] ${s.text.substring(0, 30)}...</li>`).join('');
+        }
+
+        function publishHunt() {
+            const title = document.getElementById('hunt-title').value;
+            if(!title || tempSteps.length === 0) return alert('Molimo unesite naslov i barem jedan korak!');
+
+            // Generiranje Unikatnog ID-a
+            const huntId = 'GH-' + Math.floor(1000 + Math.random() * 9000);
+            
+            const newHunt = { id: huntId, title, steps: tempSteps };
+            
+            // Spremanje u LocalStorage (Za bazu/backend promijeniti u fetch request)
+            localStorage.setItem(huntId, JSON.stringify(newHunt));
+
+            alert(`Vaša avantura je objavljena!\n\nSpremljeni ID: ${huntId}\n\nSpremite ovaj ID kako biste je mogli pokrenuti bilo kada!`);
+            tempSteps = [];
+            showScreen('home');
+            document.getElementById('game-id-input').value = huntId;
+        }
+
+        // --- GAMEPLAY LOGIC ---
+        function loadGame() {
+            const id = document.getElementById('game-id-input').value.trim().toUpperCase();
+            const data = localStorage.getItem(id);
+
+            if(!data) return alert('Avantura s tim ID-em nije pronađena!');
+
+            currentHunt = JSON.parse(data);
+            currentStepIndex = 0;
+            
+            document.getElementById('game-title-display').innerText = currentHunt.title;
+            showScreen('game');
+            renderStep();
+            initGeolocation();
+        }
+
+        function renderStep() {
+            const step = currentHunt.steps[currentStepIndex];
+            
+            // Reset visibility
+            document.getElementById('play-image').classList.add('hidden');
+            document.getElementById('play-location-container').classList.add('hidden');
+            document.getElementById('play-mc-container').classList.add('hidden');
+            document.getElementById('play-open-container').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+
+            // UI Progress
+            document.getElementById('game-progress').innerText = `Korak ${currentStepIndex + 1}/${currentHunt.steps.length}`;
+            document.getElementById('play-text').innerText = step.text;
+
+            // Slika
+            if(step.image) {
+                const img = document.getElementById('play-image');
+                img.src = step.image;
+                img.classList.remove('hidden');
+            }
+
+            // Tipovi
+            if(step.type === 'info') {
+                document.getElementById('next-btn').classList.remove('hidden');
+            } 
+            else if(step.type === 'location') {
+                document.getElementById('play-location-container').classList.remove('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+                setTimeout(() => initMap(step.lat, step.lng), 200); // Init Leaflet Map
+            } 
+            else if(step.type === 'quiz-mc') {
+                const mcContainer = document.getElementById('play-mc-container');
+                mcContainer.classList.remove('hidden');
+                mcContainer.innerHTML = step.options.map((opt, idx) => 
+                    `<button onclick="checkMCAnswer(${idx})" class="w-full p-3 bg-slate-700 hover:bg-slate-600 rounded text-left font-semibold mb-2">${opt}</button>`
+                ).join('');
+            } 
+            else if(step.type === 'quiz-open') {
+                document.getElementById('play-open-container').classList.remove('hidden');
+            }
+        }
+
+        function checkMCAnswer(index) {
+            const step = currentHunt.steps[currentStepIndex];
+            if(index === step.correct) {
+                alert('Točno! 🎉');
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else {
+                alert('Netočno, pokušaj ponovno!');
+            }
+        }
+
+        function checkOpenAnswer() {
+            const step = currentHunt.steps[currentStepIndex];
+            const input = document.getElementById('open-input').value.trim().toLowerCase();
+            if(input === step.answer) {
+                alert('Točno! 🎉');
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('open-input').value = '';
+            } else {
+                alert('Netočno, pokušaј ponovno!');
+            }
+        }
+
+        function nextStep() {
+            currentStepIndex++;
+            if(currentStepIndex < currentHunt.steps.length) {
+                renderStep();
+            } else {
+                alert('Čestitamo! Završili ste cijelu GeoHunt PRO avanturu! 🏆');
+                showScreen('home');
+            }
+        }
+
+        // --- MAPS & COMPASS LOGIC ---
+        function initMap(targetLat, targetLng) {
+            if(!map) {
+                map = L.map('map').setView([targetLat, targetLng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            } else {
+                map.setView([targetLat, targetLng], 15);
+            }
+
+            if(targetMarker) map.removeLayer(targetMarker);
+            targetMarker = L.marker([targetLat, targetLng]).addTo(map).bindPopup("Cilj!").openPopup();
+        }
+
+        function initGeolocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(position => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+
+                    const step = currentHunt.steps[currentStepIndex];
+                    if(step && step.type === 'location') {
+                        // Izračunaj udaljenost i kut
+                        const dist = getDistance(userLat, userLng, step.lat, step.lng);
+                        document.getElementById('distance-display').innerText = `Udaljenost: ${Math.round(dist)} meters`;
+
+                        const bearing = getBearing(userLat, userLng, step.lat, step.lng);
+                        
+                        // Rotacija kompas kazaljke
+                        document.getElementById('compass-arrow').style.transform = `rotate(${bearing}deg)`;
+                    }
+                }, err => console.log(err), { enableHighAccuracy: true });
+            }
+        }
+
+        // Izračun udaljenosti u metrima (Haversine formula)
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; 
+            const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // Izračun kuta/smjera za kompas
+        function getBearing(lat1, lon1, lat2, lon2) {
+            const y = Math.sin((lon2-lon1)*Math.PI/180) * Math.cos(lat2*Math.PI/180);
+            const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos((lon2-lon1)*Math.PI/180);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+    </script>
+</body>
+</html>
