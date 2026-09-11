@@ -1,87 +1,61 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="hr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoHunt PRO</title>
-    <!-- Tailwind CSS za moderan i responzivan dizajn -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .compass-arrow {
-            transition: transform 0.2s ease-out;
+            transition: transform 0.1s linear;
             display: inline-block;
-        }
-        /* Custom scrollbar za listu koraka */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
         }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-900">
+<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between">
 
-    <!-- Navigacija -->
-    <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-50 p-4 border-b border-slate-700/60 flex justify-between items-center shadow-lg">
-        <h1 class="text-2xl font-black tracking-wider text-emerald-400 cursor-pointer flex items-center gap-1" onclick="showScreen('home')">
-            GeoHunt <span class="text-xs font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm tracking-normal">PRO</span>
+    <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-50 p-4 border-b border-slate-700 flex justify-between items-center">
+        <h1 class="text-2xl font-black text-emerald-400 cursor-pointer" onclick="showScreen('home')">
+            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">PRO</span>
         </h1>
-        <div class="flex items-center space-x-2">
-            <button onclick="showScreen('home')" class="px-3 py-1.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg text-sm font-semibold transition active:scale-95">Početna</button>
-            <button onclick="showScreen('editor')" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-sm font-extrabold transition shadow-md shadow-emerald-500/20 active:scale-95">Editor (+)</button>
+        <div class="flex space-x-2">
+            <button onclick="showScreen('home')" class="px-3 py-1.5 bg-slate-700 rounded-lg text-sm font-semibold">Početna</button>
+            <button onclick="showScreen('editor')" class="px-3 py-1.5 bg-emerald-500 text-slate-950 font-black rounded-lg text-sm">Editor (+)</button>
         </div>
     </nav>
 
-    <!-- Glavni Kontejner -->
     <main class="container mx-auto p-4 max-w-xl flex-1 flex flex-col justify-center">
 
-        <!-- 1. POČETNI EKRAN (Upis ID-a) -->
+        <!-- 1. POČETNI EKRAN -->
         <div id="screen-home" class="space-y-6 text-center py-6 my-auto">
-            <div class="space-y-3">
-                <div class="inline-block p-4 bg-emerald-500/10 rounded-full border border-emerald-500/20 mb-2">
-                    <span class="text-5xl">🧭</span>
-                </div>
-                <h2 class="text-3xl font-black tracking-tight text-white">Dobrodošli u GeoHunt PRO</h2>
-                <p class="text-slate-400 text-sm max-w-sm mx-auto">Unesite ID avanture za početak potrage ili izradite vlastiti treasure hunt u Editoru!</p>
+            <div class="space-y-2">
+                <span class="text-5xl">🧭</span>
+                <h2 class="text-3xl font-black">GeoHunt PRO</h2>
+                <p class="text-slate-400 text-sm">Unesite ID avanture ili uvezite kod avanture stvoren na PC-u!</p>
             </div>
 
-            <div class="bg-slate-800/90 p-6 rounded-2xl border border-slate-700/80 shadow-2xl space-y-4">
-                <div class="space-y-1 text-left">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">ID Avanture</label>
-                    <input type="text" id="game-id-input" placeholder="Npr. GH-4821" class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono text-xl tracking-widest uppercase focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase text-left mb-1">ID ili Kod Avanture</label>
+                    <input type="text" id="game-id-input" placeholder="Upišite ID (npr. GH-1234) ili zalijepite kod" class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono focus:outline-none focus:border-emerald-500">
                 </div>
-                <button onclick="loadGame()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 rounded-xl text-lg transition shadow-lg shadow-emerald-500/20 active:scale-[0.98]">Započni Igru 🚀</button>
+                <button onclick="loadGame()" class="w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Započni Igru 🚀</button>
             </div>
         </div>
 
-        <!-- 2. EDITOR EKRAN (Izrada potrage) -->
-        <div id="screen-editor" class="hidden space-y-6 py-4">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h2 class="text-2xl font-black text-emerald-400">Editor Avanture</h2>
-                <span class="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full font-mono">Kreirajte ruti</span>
-            </div>
+        <!-- 2. EDITOR EKRAN -->
+        <div id="screen-editor" class="hidden space-y-5 py-4">
+            <h2 class="text-2xl font-black text-emerald-400">Editor Avanture</h2>
             
-            <div class="bg-slate-800/90 p-5 rounded-2xl space-y-4 border border-slate-700/80 shadow-xl">
+            <div class="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700">
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Naziv Avanture</label>
-                    <input type="text" id="hunt-title" placeholder="Npr. Tajne Starog Grada" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
+                    <input type="text" id="hunt-title" placeholder="Npr. Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
                 </div>
 
-                <hr class="border-slate-700/60 my-2">
-
-                <h3 class="font-bold text-base text-slate-200 flex items-center gap-2">
-                    <span>➕</span> Dodaj Novi Korak
-                </h3>
-                
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Tip Koraka</label>
-                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 font-medium">
-                        <option value="info">Info Slajd (Tekst / Slika)</option>
+                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
                         <option value="location">Tajno Odredište (Kompas + Udaljenost)</option>
                         <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
                         <option value="quiz-open">Pitanje otvorenog tipa</option>
@@ -90,151 +64,113 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa</label>
-                    <textarea id="step-text" placeholder="Unesite tekst koji se prikazuje igraču..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20 focus:outline-none focus:border-emerald-500"></textarea>
+                    <textarea id="step-text" placeholder="Unesite tekst..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">URL Slike (Opcionalno)</label>
-                    <input type="text" id="step-image" placeholder="https://primjer.com/slika.jpg" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500">
-                </div>
-
-                <!-- DODANO: Prilagodljivi Bodovi za SVAKO pitanje ili korak -->
                 <div id="field-points" class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl">
-                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">⭐ Bodovi za ovaj korak / točan odgovor</label>
-                    <input type="number" id="step-points" value="10" min="0" class="w-full p-2.5 rounded-lg bg-slate-950 border border-amber-500/50 text-white font-mono font-bold text-lg text-center focus:outline-none focus:border-amber-400">
+                    <label class="block text-xs font-bold text-amber-400 uppercase mb-1">⭐ Bodovi za ovaj korak</label>
+                    <input type="number" id="step-points" value="10" min="0" class="w-full p-2 rounded-lg bg-slate-950 text-white text-center font-bold">
                 </div>
 
-                <!-- Polja za Lokaciju / Kompas -->
-                <div id="field-location" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3 py-1">
-                    <p class="text-xs text-emerald-400 font-medium">Unesite koordinate ciljne točke (igrač vidi samo kompas!):</p>
+                <!-- Polja za Lokaciju -->
+                <div id="field-location" class="space-y-2 border-l-2 border-emerald-500 pl-3">
+                    <p class="text-xs text-emerald-400">Koordinate cilja:</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-0.5">Geografska širina (Lat)</label>
-                            <input type="number" step="any" id="step-lat" placeholder="Npr. 45.8153" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm font-mono focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-slate-400 mb-0.5">Geografska dužina (Lng)</label>
-                            <input type="number" step="any" id="step-lng" placeholder="Npr. 15.9819" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm font-mono focus:outline-none focus:border-emerald-500">
-                        </div>
+                        <input type="number" step="any" id="step-lat" placeholder="Lat (npr. 45.815)" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
+                        <input type="number" step="any" id="step-lng" placeholder="Lng (npr. 15.981)" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
                     </div>
                 </div>
 
                 <!-- Polja za Višestruki Izbor -->
-                <div id="field-quiz-mc" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3 py-1">
-                    <p class="text-xs text-slate-300 font-medium">Ponuđeni odgovori:</p>
-                    <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
-                    <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
-                    <input type="text" id="mc-3" placeholder="Opcija C" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
-                    <label class="block text-xs text-emerald-400 font-medium pt-1">Koji je odgovor točan?</label>
-                    <select id="mc-correct" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm font-medium">
-                        <option value="0">Točna opcija: Opcija A</option>
-                        <option value="1">Točna opcija: Opcija B</option>
-                        <option value="2">Točna opcija: Opcija C</option>
+                <div id="field-quiz-mc" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3">
+                    <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
+                    <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
+                    <input type="text" id="mc-3" placeholder="Opcija C" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
+                    <select id="mc-correct" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
+                        <option value="0">Točan odgovor: Opcija A</option>
+                        <option value="1">Točan odgovor: Opcija B</option>
+                        <option value="2">Točan odgovor: Opcija C</option>
                     </select>
                 </div>
 
                 <!-- Polja za Otvoreno Pitanje -->
-                <div id="field-quiz-open" class="hidden border-l-2 border-emerald-500 pl-3 py-1 space-y-1">
-                    <label class="block text-xs text-slate-300 font-medium">Točan Odgovor (Igrač mora upisati točnu riječ):</label>
-                    <input type="text" id="open-answer" placeholder="Npr. Zagreb" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
+                <div id="field-quiz-open" class="hidden border-l-2 border-emerald-500 pl-3">
+                    <input type="text" id="open-answer" placeholder="Točna riječ/odgovor" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
                 </div>
 
-                <button onclick="addStep()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition active:scale-[0.98]">+ Dodaj Korak u Rutu</button>
+                <button onclick="addStep()" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-xl">+ Dodaj Korak</button>
             </div>
 
-            <!-- Lista dodanih koraka -->
-            <div class="bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80 space-y-3">
-                <h3 class="font-bold text-sm uppercase tracking-wider text-slate-300">Dodani koraci u avanturu:</h3>
-                <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300 max-h-48 overflow-y-auto pr-1"></ul>
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300"></ul>
             </div>
 
-            <button onclick="publishHunt()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-2xl text-lg transition shadow-xl shadow-emerald-500/20 active:scale-[0.98]">Objavi Avanturu & Spremi ID 🎯</button>
+            <button onclick="publishHunt()" class="w-full bg-emerald-500 text-slate-950 font-black py-4 rounded-2xl text-lg">Objavi Avanturu 🎯</button>
         </div>
 
-        <!-- 3. GAMEPLAY EKRAN (Igranje) -->
+        <!-- 3. GAMEPLAY EKRAN -->
         <div id="screen-game" class="hidden space-y-5 my-auto">
-            <!-- Game Info Bar -->
-            <div class="flex justify-between items-center bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700/80 shadow-md">
-                <span id="game-title-display" class="font-black text-emerald-400 truncate max-w-[180px] text-base"></span>
-                <div class="flex items-center space-x-2">
-                    <span id="score-display" class="text-xs bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black px-2.5 py-1 rounded-full">⭐ 0</span>
-                    <span id="game-progress" class="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full font-mono font-bold">1/1</span>
+            <div class="flex justify-between items-center bg-slate-800 p-3.5 rounded-2xl border border-slate-700">
+                <span id="game-title-display" class="font-black text-emerald-400"></span>
+                <div class="flex space-x-2">
+                    <span id="score-display" class="text-xs bg-amber-500/20 text-amber-400 font-black px-2.5 py-1 rounded-full">⭐ 0</span>
+                    <span id="game-progress" class="text-xs bg-slate-700 px-2.5 py-1 rounded-full font-mono">1/1</span>
                 </div>
             </div>
 
-            <!-- Glavna Kartica Zadatka -->
-            <div class="bg-slate-800/90 p-6 rounded-2xl border border-slate-700/80 shadow-2xl space-y-5 text-center">
-                
-                <p id="play-text" class="text-lg font-bold text-slate-100 leading-snug"></p>
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-5">
+                <p id="play-text" class="text-lg font-bold text-slate-100"></p>
 
-                <!-- Prikaz Slike ako postoji -->
-                <img id="play-image" src="" class="hidden w-full max-h-56 object-cover rounded-xl border border-slate-700 shadow-lg">
-
-                <!-- NOVI KOMPAS KONTENJER (BEZ KARTE!) -->
-                <div id="play-location-container" class="hidden space-y-4 py-2">
-                    <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner space-y-3">
-                        <span class="text-xs font-extrabold tracking-widest text-slate-400 uppercase">Slijedite Kazaljku</span>
+                <!-- KOMPAS (BEZ KARTE) -->
+                <div id="play-location-container" class="hidden space-y-4">
+                    <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Slijedite Kazaljku</span>
                         
-                        <!-- Velika Kazaljka Kompasa -->
-                        <div class="relative w-28 h-28 flex items-center justify-center bg-slate-900 rounded-full border-2 border-emerald-500/30 shadow-lg">
-                            <div id="compass-arrow" class="compass-arrow text-6xl transform origin-center">🎯</div>
+                        <div class="relative w-32 h-32 flex items-center justify-center bg-slate-900 rounded-full border-2 border-emerald-500/30">
+                            <div id="compass-arrow" class="compass-arrow text-6xl">🎯</div>
                         </div>
 
-                        <!-- Prikaz Udaljenosti -->
-                        <div class="bg-emerald-500/10 border border-emerald-500/30 px-4 py-2 rounded-xl">
+                        <div class="bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 rounded-xl">
                             <span id="distance-display" class="text-2xl font-black font-mono text-emerald-400">--- m</span>
                         </div>
-                        <p class="text-[11px] text-slate-500 italic">Usmerite mobitel u smjeru kazaljke i kretajte se prema cilju!</p>
+
+                        <button onclick="enableSensors()" class="text-xs text-amber-400 underline pt-2">Aktiviraj Kompas Senzor (iOS/Android)</button>
                     </div>
                 </div>
 
-                <!-- Višestruki izbor (Ponuđeni odgovori) -->
-                <div id="play-mc-container" class="hidden space-y-2.5 pt-2"></div>
+                <div id="play-mc-container" class="hidden space-y-2"></div>
 
-                <!-- Otvoreno Pitanje -->
-                <div id="play-open-container" class="hidden space-y-3 pt-2">
-                    <input type="text" id="open-input" placeholder="Upišite vaš odgovor..." class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center text-lg focus:outline-none focus:border-emerald-500">
-                    <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl transition shadow-md shadow-emerald-500/20">Potvrdi Odgovor</button>
+                <div id="play-open-container" class="hidden space-y-3">
+                    <input type="text" id="open-input" placeholder="Odgovor..." class="w-full p-3 rounded-xl bg-slate-950 text-center text-lg border border-slate-700">
+                    <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
                 </div>
 
-                <!-- Gumb za Nastavak -->
-                <button id="next-btn" onclick="nextStep()" class="hidden w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 rounded-xl text-lg transition shadow-lg shadow-emerald-500/20">Dalje ➡️</button>
+                <button id="next-btn" onclick="nextStep()" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Dalje ➡️</button>
             </div>
         </div>
 
     </main>
 
-    <!-- Podnožje -->
-    <footer class="p-4 text-center text-xs text-slate-500 border-t border-slate-800/60">
-        GeoHunt PRO &copy; 2026 - Aplikacija za istraživanje i potrage za blagom
-    </footer>
-
     <script>
-        // --- STANJE APLIKACIJE ---
         let currentHunt = { id: '', title: '', steps: [] };
         let tempSteps = [];
         let currentStepIndex = 0;
         let totalScore = 0;
+        let userLat = null, userLng = null;
+        let deviceHeading = 0;
 
-        // --- ZASLONI I NAVIGACIJA ---
         function showScreen(screen) {
             document.getElementById('screen-home').classList.add('hidden');
             document.getElementById('screen-editor').classList.add('hidden');
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById(`screen-${screen}`).classList.remove('hidden');
-            if(screen === 'editor') toggleEditorFields();
         }
 
-        // --- EDITOR LOGIKA ---
         function toggleEditorFields() {
             const type = document.getElementById('step-type').value;
             document.getElementById('field-location').classList.add('hidden');
             document.getElementById('field-quiz-mc').classList.add('hidden');
             document.getElementById('field-quiz-open').classList.add('hidden');
-            
-            // Bodove prikazujemo za sve tipove zadataka
-            document.getElementById('field-points').classList.remove('hidden');
-
             if (type === 'location') document.getElementById('field-location').classList.remove('hidden');
             if (type === 'quiz-mc') document.getElementById('field-quiz-mc').classList.remove('hidden');
             if (type === 'quiz-open') document.getElementById('field-quiz-open').classList.remove('hidden');
@@ -243,86 +179,56 @@
         function addStep() {
             const type = document.getElementById('step-type').value;
             const text = document.getElementById('step-text').value;
-            const image = document.getElementById('step-image').value;
             const points = parseInt(document.getElementById('step-points').value) || 0;
+            if(!text) return alert('Unesite tekst koraka!');
 
-            if(!text) return alert('Molimo unesite tekst ili pitanje za ovaj korak!');
-
-            let step = { type, text, image, points };
+            let step = { type, text, points };
 
             if (type === 'location') {
                 step.lat = parseFloat(document.getElementById('step-lat').value);
                 step.lng = parseFloat(document.getElementById('step-lng').value);
-                if(isNaN(step.lat) || isNaN(step.lng)) {
-                    return alert('Molimo unesite ispravne koordinate (Lat i Lng)!');
-                }
             } else if (type === 'quiz-mc') {
-                const opt1 = document.getElementById('mc-1').value;
-                const opt2 = document.getElementById('mc-2').value;
-                const opt3 = document.getElementById('mc-3').value;
-                if(!opt1 || !opt2 || !opt3) return alert('Molimo unesite sve 3 opcije odgovora!');
-                
-                step.options = [opt1, opt2, opt3];
+                step.options = [document.getElementById('mc-1').value, document.getElementById('mc-2').value, document.getElementById('mc-3').value];
                 step.correct = parseInt(document.getElementById('mc-correct').value);
             } else if (type === 'quiz-open') {
-                const ans = document.getElementById('open-answer').value.trim();
-                if(!ans) return alert('Molimo unesite točan odgovor!');
-                step.answer = ans.toLowerCase();
+                step.answer = document.getElementById('open-answer').value.trim().toLowerCase();
             }
 
             tempSteps.push(step);
             updateEditorList();
-            
-            // Resetiranje polja za unos
             document.getElementById('step-text').value = '';
-            document.getElementById('step-image').value = '';
-            document.getElementById('mc-1').value = '';
-            document.getElementById('mc-2').value = '';
-            document.getElementById('mc-3').value = '';
-            document.getElementById('open-answer').value = '';
         }
 
         function updateEditorList() {
             const list = document.getElementById('editor-steps-list');
-            if(tempSteps.length === 0) {
-                list.innerHTML = '<li class="text-slate-500 italic text-xs">Još nema dodanih koraka.</li>';
-                return;
-            }
-            list.innerHTML = tempSteps.map((s, i) => `
-                <li class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <span class="font-medium truncate max-w-[220px]">${i+1}. [${s.type.toUpperCase()}] ${s.text}</span>
-                    <span class="text-xs bg-amber-500/20 text-amber-400 font-mono px-2 py-0.5 rounded-full border border-amber-500/30">+${s.points} pt</span>
-                </li>
-            `).join('');
+            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text} (+${s.points} pt)</li>`).join('');
         }
 
         function publishHunt() {
             const title = document.getElementById('hunt-title').value.trim();
-            if(!title) return alert('Unesite naziv avanture!');
-            if(tempSteps.length === 0) return alert('Dodajte barem jedan korak u avanturu!');
+            if(!title || tempSteps.length === 0) return alert('Popunite naziv i dodajte korake!');
 
-            // Generiranje jedinstvenog ID-a (npr. GH-5921)
             const huntId = 'GH-' + Math.floor(1000 + Math.random() * 9000);
             const newHunt = { id: huntId, title, steps: tempSteps };
             
-            // Spremanje u LocalStorage (djeluje na uređaju)
-            localStorage.setItem(huntId, JSON.stringify(newHunt));
+            const rawData = JSON.stringify(newHunt);
+            localStorage.setItem(huntId, rawData);
 
-            alert(`🎉 Avantura je uspješno objavljena!\n\nVaš ID: ${huntId}\n\nUpišite ovaj ID na početnoj stranici za početak potrage!`);
+            prompt(`🎉 Avantura objavljena!\n\nID: ${huntId}\n\nKopirajte donji kod i zalijepite ga na mobitela u polje za ID:`, rawData);
             tempSteps = [];
-            document.getElementById('hunt-title').value = '';
-            updateEditorList();
             showScreen('home');
-            document.getElementById('game-id-input').value = huntId;
         }
 
-        // --- GAMEPLAY LOGIKA ---
         function loadGame() {
-            const id = document.getElementById('game-id-input').value.trim().toUpperCase();
-            if(!id) return alert('Upisite ID avanture!');
+            const input = document.getElementById('game-id-input').value.trim();
+            if(!input) return alert('Unesite ID ili Kod!');
 
-            const data = localStorage.getItem(id);
-            if(!data) return alert('Avantura pod tim ID-em nije pronađena!');
+            let data = localStorage.getItem(input);
+            if(!data && input.startsWith('{')) {
+                data = input; // Ako je zalijepljen cijeli kod avanture
+            }
+
+            if(!data) return alert('Avantura nije pronađena! Zalijepite kod avanture stvoren na PC-u.');
 
             currentHunt = JSON.parse(data);
             currentStepIndex = 0;
@@ -333,136 +239,119 @@
             
             showScreen('game');
             renderStep();
-            initGeolocationWatch();
+            initGPSAndCompass();
         }
 
         function renderStep() {
             const step = currentHunt.steps[currentStepIndex];
-            
-            // Sakrij sve opcionalne kontejnere
-            document.getElementById('play-image').classList.add('hidden');
             document.getElementById('play-location-container').classList.add('hidden');
             document.getElementById('play-mc-container').classList.add('hidden');
             document.getElementById('play-open-container').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
 
-            // Postavi tekst i napredak
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
             document.getElementById('play-text').innerText = step.text;
 
-            // Slika
-            if(step.image) {
-                const img = document.getElementById('play-image');
-                img.src = step.image;
-                img.classList.remove('hidden');
-            }
-
-            // Prikaz ovisno o tipu
-            if(step.type === 'info') {
-                if(step.points > 0) addPoints(step.points);
-                document.getElementById('next-btn').classList.remove('hidden');
-            } 
-            else if(step.type === 'location') {
+            if(step.type === 'location') {
                 document.getElementById('play-location-container').classList.remove('hidden');
                 document.getElementById('next-btn').classList.remove('hidden');
-            } 
-            else if(step.type === 'quiz-mc') {
+            } else if(step.type === 'quiz-mc') {
                 const container = document.getElementById('play-mc-container');
                 container.classList.remove('hidden');
                 container.innerHTML = step.options.map((opt, idx) => `
-                    <button onclick="checkMCAnswer(${idx})" class="w-full p-3.5 bg-slate-700/60 hover:bg-emerald-500 hover:text-slate-950 border border-slate-600 rounded-xl text-left font-bold transition">
-                        ${opt}
-                    </button>
+                    <button onclick="checkMC(${idx})" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-xl font-bold">${opt}</button>
                 `).join('');
-            } 
-            else if(step.type === 'quiz-open') {
+            } else if(step.type === 'quiz-open') {
                 document.getElementById('play-open-container').classList.remove('hidden');
             }
         }
 
-        function addPoints(pts) {
-            totalScore += pts;
-            document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
-        }
-
-        function checkMCAnswer(index) {
+        function checkMC(idx) {
             const step = currentHunt.steps[currentStepIndex];
-            if(index === step.correct) {
-                addPoints(step.points);
-                alert(`🎯 Točno! Osvojili ste +${step.points} bodova!`);
+            if(idx === step.correct) {
+                totalScore += step.points;
+                document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+                alert(`🎯 Točno! +${step.points} pt`);
                 document.getElementById('play-mc-container').classList.add('hidden');
                 document.getElementById('next-btn').classList.remove('hidden');
-            } else {
-                alert('❌ Netočno! Pokušajte ponovno.');
-            }
+            } else alert('❌ Netočno!');
         }
 
         function checkOpenAnswer() {
             const step = currentHunt.steps[currentStepIndex];
             const input = document.getElementById('open-input').value.trim().toLowerCase();
             if(input === step.answer) {
-                addPoints(step.points);
-                alert(`🎯 Točno! Osvojili ste +${step.points} bodova!`);
+                totalScore += step.points;
+                document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+                alert(`🎯 Točno! +${step.points} pt`);
                 document.getElementById('play-open-container').classList.add('hidden');
                 document.getElementById('next-btn').classList.remove('hidden');
-                document.getElementById('open-input').value = '';
-            } else {
-                alert('❌ Netočno! Provjerite unos i pokušajte ponovno.');
-            }
+            } else alert('❌ Netočno!');
         }
 
         function nextStep() {
             currentStepIndex++;
-            if(currentStepIndex < currentHunt.steps.length) {
-                renderStep();
-            } else {
-                alert(`🏆 ČESTITAMO!\n\nZavršili ste avanturu: ${currentHunt.title}\nUkupno osvojeni bodovi: ${totalScore}`);
+            if(currentStepIndex < currentHunt.steps.length) renderStep();
+            else {
+                alert(`🏆 ČESTITAMO! Završili ste avanturu sa ${totalScore} bodova!`);
                 showScreen('home');
             }
         }
 
-        // --- GEOLOKACIJA & KOMPAS LOGIKA (BEZ KARTE) ---
-        function initGeolocationWatch() {
+        // --- GEOLOKACIJA & KOMPAS SENZORI ---
+        function initGPSAndCompass() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(pos => {
-                    const step = currentHunt.steps[currentStepIndex];
-                    if(step && step.type === 'location') {
-                        const userLat = pos.coords.latitude;
-                        const userLng = pos.coords.longitude;
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    updateCompassUI();
+                }, null, { enableHighAccuracy: true });
+            }
 
-                        // Udaljenost u metrima
-                        const dist = getDistance(userLat, userLng, step.lat, step.lng);
-                        document.getElementById('distance-display').innerText = `${Math.round(dist)} m`;
+            window.addEventListener('deviceorientation', handleOrientation, true);
+        }
 
-                        // Kut/Azimut u stupnjevima
-                        const bearing = getBearing(userLat, userLng, step.lat, step.lng);
-                        
-                        // Rotacija kazaljke
-                        document.getElementById('compass-arrow').style.transform = `rotate(${bearing}deg)`;
-
-                        // Ako stigne vrlo blizu (npr. unutar 10m)
-                        if(dist <= 10 && step.points > 0) {
-                            addPoints(step.points);
-                            step.points = 0; // samo jednom dodaj bodove
-                            alert(`📍 Stigli ste na odredište! Osvojili ste bodove!`);
-                        }
+        function enableSensors() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(response => {
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
                     }
-                }, err => {
-                    console.log('Geolokacija nedostupna ili odbijena.', err);
-                }, { enableHighAccuracy: true });
+                });
             }
         }
 
-        // Haversine formula za udaljenost
+        function handleOrientation(e) {
+            if (e.webkitCompassHeading) {
+                deviceHeading = e.webkitCompassHeading; // iOS
+            } else if (e.alpha !== null) {
+                deviceHeading = 360 - e.alpha; // Android
+            }
+            updateCompassUI();
+        }
+
+        function updateCompassUI() {
+            const step = currentHunt.steps[currentStepIndex];
+            if(!step || step.type !== 'location' || !userLat || !userLng) return;
+
+            const dist = getDistance(userLat, userLng, step.lat, step.lng);
+            document.getElementById('distance-display').innerText = `${Math.round(dist)} m`;
+
+            const targetBearing = getBearing(userLat, userLng, step.lat, step.lng);
+            
+            // Kut kazaljke = Azimut cilja - Orijentacija mobitela
+            const arrowAngle = targetBearing - deviceHeading;
+            document.getElementById('compass-arrow').style.transform = `rotate(${arrowAngle}deg)`;
+        }
+
         function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // radijus Zemlje u m
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
             const Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180;
             const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Izračun azimuta prema odredištu
         function getBearing(lat1, lon1, lat2, lon2) {
             const y = Math.sin((lon2-lon1)*Math.PI/180) * Math.cos(lat2*Math.PI/180);
             const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos((lon2-lon1)*Math.PI/180);
