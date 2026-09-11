@@ -31,7 +31,7 @@
             <div class="space-y-2">
                 <span class="text-5xl">🧭</span>
                 <h2 class="text-3xl font-black">GeoHunt PRO</h2>
-                <p class="text-slate-400 text-sm">Unesite ID avanture ili uvezite kod avanture stvoren na PC-u!</p>
+                <p class="text-slate-400 text-sm">Unesite ID ili zalijepite kod avanture stvoren na PC-u!</p>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
@@ -59,12 +59,18 @@
                         <option value="location">Tajno Odredište (Kompas + Udaljenost)</option>
                         <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
                         <option value="quiz-open">Pitanje otvorenog tipa</option>
+                        <option value="info">Info Slajd (Samo slika/tekst)</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa (Opcionalno)</label>
                     <textarea id="step-text" placeholder="Unesite tekst..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">URL Slike (Opcionalno)</label>
+                    <input type="text" id="step-image" placeholder="https://primjer.com/slika.jpg" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
                 </div>
 
                 <div id="field-points" class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl">
@@ -118,10 +124,16 @@
                 </div>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-5">
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-4">
+                <!-- KONTEJNER ZA SLIKU -->
+                <div id="play-image-container" class="hidden my-2">
+                    <img id="play-image" src="" class="w-full max-h-60 object-cover rounded-xl border border-slate-700 shadow-md">
+                </div>
+
+                <!-- TEKST SLAJDA -->
                 <p id="play-text" class="text-lg font-bold text-slate-100"></p>
 
-                <!-- KOMPAS (BEZ KARTE) -->
+                <!-- KOMPAS -->
                 <div id="play-location-container" class="hidden space-y-4">
                     <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
                         <span class="text-xs font-bold text-slate-400 uppercase">Slijedite Kazaljku</span>
@@ -138,13 +150,16 @@
                     </div>
                 </div>
 
+                <!-- KVIZ VIŠESTRUKI IZBOR -->
                 <div id="play-mc-container" class="hidden space-y-2"></div>
 
+                <!-- KVIZ OTVORENO PITANJE -->
                 <div id="play-open-container" class="hidden space-y-3">
                     <input type="text" id="open-input" placeholder="Odgovor..." class="w-full p-3 rounded-xl bg-slate-950 text-center text-lg border border-slate-700">
                     <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
                 </div>
 
+                <!-- GUMB DALJE -->
                 <button id="next-btn" onclick="nextStep()" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Dalje ➡️</button>
             </div>
         </div>
@@ -171,18 +186,23 @@
             document.getElementById('field-location').classList.add('hidden');
             document.getElementById('field-quiz-mc').classList.add('hidden');
             document.getElementById('field-quiz-open').classList.add('hidden');
+            document.getElementById('field-points').classList.remove('hidden');
+
             if (type === 'location') document.getElementById('field-location').classList.remove('hidden');
             if (type === 'quiz-mc') document.getElementById('field-quiz-mc').classList.remove('hidden');
             if (type === 'quiz-open') document.getElementById('field-quiz-open').classList.remove('hidden');
+            if (type === 'info') document.getElementById('field-points').classList.add('hidden');
         }
 
         function addStep() {
             const type = document.getElementById('step-type').value;
-            const text = document.getElementById('step-text').value;
-            const points = parseInt(document.getElementById('step-points').value) || 0;
-            if(!text) return alert('Unesite tekst koraka!');
+            const text = document.getElementById('step-text').value.trim();
+            const image = document.getElementById('step-image').value.trim();
+            const points = type === 'info' ? 0 : (parseInt(document.getElementById('step-points').value) || 0);
 
-            let step = { type, text, points };
+            if(!text && !image) return alert('Morate unijeti barem tekst ili sliku!');
+
+            let step = { type, text, image, points };
 
             if (type === 'location') {
                 step.lat = parseFloat(document.getElementById('step-lat').value);
@@ -197,11 +217,12 @@
             tempSteps.push(step);
             updateEditorList();
             document.getElementById('step-text').value = '';
+            document.getElementById('step-image').value = '';
         }
 
         function updateEditorList() {
             const list = document.getElementById('editor-steps-list');
-            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text} (+${s.points} pt)</li>`).join('');
+            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text || 'Slika'} (+${s.points} pt)</li>`).join('');
         }
 
         function publishHunt() {
@@ -214,7 +235,7 @@
             const rawData = JSON.stringify(newHunt);
             localStorage.setItem(huntId, rawData);
 
-            prompt(`🎉 Avantura objavljena!\n\nID: ${huntId}\n\nKopirajte donji kod i zalijepite ga na mobitela u polje za ID:`, rawData);
+            prompt(`🎉 Avantura objavljena!\n\nID: ${huntId}\n\nKopirajte donji kod i zalijepite ga na mobitelu u polje za ID:`, rawData);
             tempSteps = [];
             showScreen('home');
         }
@@ -225,7 +246,7 @@
 
             let data = localStorage.getItem(input);
             if(!data && input.startsWith('{')) {
-                data = input; // Ako je zalijepljen cijeli kod avanture
+                data = input; 
             }
 
             if(!data) return alert('Avantura nije pronađena! Zalijepite kod avanture stvoren na PC-u.');
@@ -244,13 +265,21 @@
 
         function renderStep() {
             const step = currentHunt.steps[currentStepIndex];
+            
+            document.getElementById('play-image-container').classList.add('hidden');
             document.getElementById('play-location-container').classList.add('hidden');
             document.getElementById('play-mc-container').classList.add('hidden');
             document.getElementById('play-open-container').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
 
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
-            document.getElementById('play-text').innerText = step.text;
+            document.getElementById('play-text').innerText = step.text || '';
+
+            // Prikaz slike ako postoji
+            if (step.image) {
+                document.getElementById('play-image').src = step.image;
+                document.getElementById('play-image-container').classList.remove('hidden');
+            }
 
             if(step.type === 'location') {
                 document.getElementById('play-location-container').classList.remove('hidden');
@@ -263,6 +292,8 @@
                 `).join('');
             } else if(step.type === 'quiz-open') {
                 document.getElementById('play-open-container').classList.remove('hidden');
+            } else if(step.type === 'info') {
+                document.getElementById('next-btn').classList.remove('hidden');
             }
         }
 
@@ -323,9 +354,9 @@
 
         function handleOrientation(e) {
             if (e.webkitCompassHeading) {
-                deviceHeading = e.webkitCompassHeading; // iOS
+                deviceHeading = e.webkitCompassHeading;
             } else if (e.alpha !== null) {
-                deviceHeading = 360 - e.alpha; // Android
+                deviceHeading = 360 - e.alpha;
             }
             updateCompassUI();
         }
@@ -338,8 +369,6 @@
             document.getElementById('distance-display').innerText = `${Math.round(dist)} m`;
 
             const targetBearing = getBearing(userLat, userLng, step.lat, step.lng);
-            
-            // Kut kazaljke = Azimut cilja - Orijentacija mobitela
             const arrowAngle = targetBearing - deviceHeading;
             document.getElementById('compass-arrow').style.transform = `rotate(${arrowAngle}deg)`;
         }
