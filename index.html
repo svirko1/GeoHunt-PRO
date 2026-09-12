@@ -101,17 +101,21 @@
 
         <!-- EKRAN: TIMSKI NAČIN / LOBBY -->
         <section id="screen-multiplayer" class="hidden space-y-4">
+            <!-- KREIRANJE NOVE SOBE -->
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
                 <h3 class="font-bold text-slate-200" data-i18n="team_mode">Timski Način (Lobby Uživo)</h3>
                 <p class="text-xs text-slate-400" data-i18n="team_sub">Igrajte uživo s prijateljima na istoj ruti i pratite bodove u stvarnom vremenu.</p>
                 
-                <input type="text" id="lobby-hunt-id" placeholder="Unesite ID Avanture za Lobby" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
-                <button onclick="createLobby()" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs" data-i18n="btn_create_room">Kreiraj Timsku Sobu 👥</button>
+                <input type="text" id="lobby-hunt-id" placeholder="Unesite ID Avanture za Lobby (npr. GH-101)" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                <button onclick="createLobby()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs" data-i18n="btn_create_room">Kreiraj Timsku Sobu 👥</button>
 
                 <div id="lobby-active" class="hidden p-3 bg-slate-950 rounded-xl border border-indigo-500/30 space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-bold text-indigo-400" data-i18n="room_active">SOBA AKTIVNA</span>
-                        <span id="lobby-code-display" class="font-mono text-sm font-black text-amber-400">---</span>
+                        <div class="flex items-center space-x-2">
+                            <span id="lobby-code-display" class="font-mono text-sm font-black text-amber-400">---</span>
+                            <button onclick="copyLobbyCode()" class="text-xs bg-indigo-500/20 text-indigo-300 p-1 rounded border border-indigo-500/30" title="Kopiraj kod">📋</button>
+                        </div>
                     </div>
                     <p class="text-[10px] text-slate-400" data-i18n="share_code">Podijelite ovaj kod timovima za prijavu.</p>
                     <div class="space-y-1">
@@ -119,6 +123,16 @@
                         <ul id="lobby-teams-list" class="text-xs space-y-1 text-slate-400"></ul>
                     </div>
                 </div>
+            </div>
+
+            <!-- PRIDRUŽIVANJE POSTOJEĆOJ SOBI -->
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <h3 class="font-bold text-slate-200">Pridruži se Timskoj Sobi</h3>
+                <p class="text-xs text-slate-400">Unesite kod sobe koji ste dobili od domaćina kako biste se spojili u natjecanje.</p>
+                
+                <input type="text" id="input-join-code" placeholder="Unesite kod sobe (npr. A8K9P2)" maxlength="6" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl font-mono uppercase tracking-widest text-amber-400 font-bold placeholder:font-sans placeholder:font-normal uppercase">
+                <button onclick="joinLobbyByCode()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs">Uđi u Sobu 🚀</button>
+                <p id="join-status-msg" class="text-xs hidden font-bold text-center mt-1"></p>
             </div>
         </section>
 
@@ -444,6 +458,19 @@
 
     <!-- APLIKACIJSKA LOGIKA (JAVASCRIPT) -->
     <script>
+        // Bedževi
+        const badgeList = [
+            { id: 'pioneer', name: 'Pionir', icon: '🧭' },
+            { id: 'hunter', name: 'Lovac', icon: '🎯' },
+            { id: 'master', name: 'Majstor', icon: '👑' }
+        ];
+
+        // Javne avanture za Explore
+        const exploreHunts = [
+            { id: 'GH-DEMO1', title: 'Zagrebačke Legende', dist: '1.2 km', stepsCount: 3 },
+            { id: 'GH-DEMO2', title: 'Morski Gusari Split', dist: '2.5 km', stepsCount: 4 }
+        ];
+
         // --- PRIJEVODI (i18n) ---
         const translations = {
             hr: {
@@ -487,7 +514,7 @@
                 follow_arrow: "Slijedite Kazaljku",
                 activate_compass: "Aktiviraj Kompas Senzor",
                 submit_answer: "Potvrdi Odgovor",
-                photo_instruction: "Fotografirajte objekt za AI analizu",
+                photo_instruction: "Fotografirajte objekt za AI analiza",
                 ai_analyzing: "⏳ AI model analizira sliku...",
                 skip_step: "⏭️ Preskoči zadatak (0 pt)",
                 next: "Dalje ➡️",
@@ -620,6 +647,7 @@
         let editorMarker = null, playMarker = null, userMarker = null;
         let stepTimerInterval = null;
         let userInventory = [];
+        let activeRoomCode = null;
 
         mobilenet.load().then(model => { aiModel = model; });
 
@@ -668,7 +696,7 @@
             return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 minZoom: 2,
                 maxZoom: 22,
-                maxNativeZoom: 19, // Povećava/rasteže pločice ako se zumira preko 19 umjesto unloada
+                maxNativeZoom: 19,
                 subdomains: 'abcd'
             });
         }
@@ -842,16 +870,79 @@
             `).join('');
         }
 
+        /* --- TIMSKE SOBE LOGIKA --- */
+        function generateRandomRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let res = '';
+            for (let i = 0; i < 6; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return res;
+        }
+
         function createLobby() {
             const huntId = document.getElementById('lobby-hunt-id').value.trim();
             if(!huntId) return alert('Unesite ID avanture!');
             
-            const code = 'TIM-' + Math.floor(1000 + Math.random() * 9000);
-            document.getElementById('lobby-code-display').innerText = code;
+            activeRoomCode = generateRandomRoomCode();
+            document.getElementById('lobby-code-display').innerText = activeRoomCode;
             document.getElementById('lobby-active').classList.remove('hidden');
 
-            const teams = ['Crveni Zmajevi', 'Plavi Lavovi', 'Zeleni Sokol'];
-            document.getElementById('lobby-teams-list').innerHTML = teams.map(t => `<li class="bg-slate-950 p-2 rounded border border-slate-800">👥 ${t} - Spreman</li>`).join('');
+            // Pohranjujemo sobu u lokalni spremnik za simulaciju spajanja
+            const roomData = { huntId, createdBy: currentUser ? currentUser.username : 'Host', teams: ['Glavni Tim (Vi)'] };
+            localStorage.setItem('gh_room_' + activeRoomCode, JSON.stringify(roomData));
+
+            updateLobbyTeamsList(roomData.teams);
+        }
+
+        function updateLobbyTeamsList(teams) {
+            document.getElementById('lobby-teams-list').innerHTML = teams.map(t => `<li class="bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center"><span>👥 ${t}</span> <span class="text-[10px] text-emerald-400">● Aktivan</span></li>`).join('');
+        }
+
+        function copyLobbyCode() {
+            if(!activeRoomCode) return;
+            navigator.clipboard.writeText(activeRoomCode).then(() => {
+                alert('Kod timske sobe (' + activeRoomCode + ') je kopiran u međuspremnik!');
+            });
+        }
+
+        function joinLobbyByCode() {
+            const codeInput = document.getElementById('input-join-code').value.trim().toUpperCase();
+            const statusMsg = document.getElementById('join-status-msg');
+
+            if(codeInput.length !== 6) {
+                statusMsg.innerText = '⚠️ Kod sobe mora imati točno 6 znakova!';
+                statusMsg.className = 'text-xs font-bold text-center mt-1 text-red-400 block';
+                return;
+            }
+
+            const storedRoom = localStorage.getItem('gh_room_' + codeInput);
+            
+            if(storedRoom || codeInput === activeRoomCode) {
+                statusMsg.innerText = '✅ Uspješno ste se pridružili sobi: ' + codeInput;
+                statusMsg.className = 'text-xs font-bold text-center mt-1 text-emerald-400 block';
+
+                const teamName = currentUser ? currentUser.username : ('Tim-' + Math.floor(100 + Math.random() * 900));
+                
+                if(storedRoom) {
+                    let roomData = JSON.parse(storedRoom);
+                    if(!roomData.teams.includes(teamName)) {
+                        roomData.teams.push(teamName);
+                        localStorage.setItem('gh_room_' + codeInput, JSON.stringify(roomData));
+                    }
+                    if(codeInput === activeRoomCode) updateLobbyTeamsList(roomData.teams);
+                    
+                    setTimeout(() => {
+                        document.getElementById('game-id-input').value = roomData.huntId;
+                        loadGame();
+                    }, 1200);
+                } else {
+                    setTimeout(() => { loadGame(); }, 1200);
+                }
+            } else {
+                statusMsg.innerText = '❌ Soba s navedenim kodom nije pronađena!';
+                statusMsg.className = 'text-xs font-bold text-center mt-1 text-red-400 block';
+            }
         }
 
         function toggleEditorFields() {
