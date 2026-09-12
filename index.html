@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoHunt PRO + AI</title>
+    <title>GeoHunt PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QR Skener i Generator -->
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -22,7 +22,7 @@
 
     <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-50 p-4 border-b border-slate-700 flex justify-between items-center">
         <h1 class="text-2xl font-black text-emerald-400 cursor-pointer" onclick="showScreen('home')">
-            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">AI PRO</span>
+            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">PRO</span>
         </h1>
         <div class="flex space-x-2">
             <button onclick="showScreen('home')" class="px-3 py-1.5 bg-slate-700 rounded-lg text-sm font-semibold">Početna</button>
@@ -32,10 +32,10 @@
 
     <main class="container mx-auto p-4 max-w-xl flex-1 flex flex-col justify-center">
 
-        <!-- 1. POČETNI EKRAN -->
+        <!-- 1. POČETNI EKRAN (Bez robota, samo kompas) -->
         <div id="screen-home" class="space-y-6 text-center py-6 my-auto">
             <div class="space-y-2">
-                <span class="text-5xl">🤖🧭</span>
+                <span class="text-5xl">🧭</span>
                 <h2 class="text-3xl font-black">GeoHunt PRO</h2>
                 <p class="text-slate-400 text-sm">Skenirajte QR kod ili unesite kod avanture!</p>
             </div>
@@ -70,7 +70,7 @@
             <div class="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
-                    <input type="text" id="hunt-title" placeholder="Npr. AI Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                    <input type="text" id="hunt-title" placeholder="Npr. Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
                 </div>
 
                 <div>
@@ -127,7 +127,7 @@
 
                 <!-- Polja za AI Foto Zadatak -->
                 <div id="field-photo-ai" class="hidden border-l-2 border-purple-500 pl-3 space-y-2">
-                    <label class="block text-xs font-bold text-purple-400 uppercase">🤖 AI Riječ za Prepoznavanje (Engleski)</label>
+                    <label class="block text-xs font-bold text-purple-400 uppercase">AI Riječ za Prepoznavanje (Engleski)</label>
                     <input type="text" id="ai-target" placeholder="npr. dog, cat, car, tree, chair, banana" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
                     <p class="text-[10px] text-slate-400">Napišite naziv objekta na engleskom koji AI mora pronaći na uslikanoj slici.</p>
                 </div>
@@ -197,10 +197,10 @@
                     <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
                 </div>
 
-                <!-- FOTO ZADATAK SA AI PROVJEROM -->
+                <!-- FOTO ZADATAK SA AI PROVJEROM + SKIP GUMB -->
                 <div id="play-photo-container" class="hidden space-y-3">
                     <label class="block p-4 bg-slate-950 border-2 border-dashed border-purple-500/50 rounded-xl cursor-pointer hover:border-purple-400">
-                        <span class="text-3xl">📸🤖</span>
+                        <span class="text-3xl">📸</span>
                         <p class="text-xs text-purple-300 font-bold mt-1">Uslikajte objekt za AI analizu</p>
                         <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" class="hidden">
                     </label>
@@ -212,6 +212,11 @@
                     <div id="photo-preview-container" class="hidden">
                         <img id="photo-preview" class="w-full max-h-48 object-cover rounded-xl border border-purple-500">
                     </div>
+
+                    <!-- GUMB ZA PRESKAKANJE (0 BODOVA) -->
+                    <button onclick="skipPhotoStep()" class="w-full bg-slate-700/60 hover:bg-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold border border-slate-600">
+                        ⏭️ Preskoči zadatak (0 pt)
+                    </button>
                 </div>
 
                 <!-- GUMB DALJE -->
@@ -413,6 +418,11 @@
             }
         }
 
+        // PRESKAKANJE FOTO ZADATKA (BEZ BODOVA)
+        function skipPhotoStep() {
+            nextStep();
+        }
+
         // --- AI PREPOZNAVANJE SLIKE ---
         async function handlePhotoUpload(e) {
             const file = e.target.files[0];
@@ -430,7 +440,6 @@
 
                 const step = currentHunt.steps[currentStepIndex];
 
-                // Ako nema definiranog AI cilja, priznaje se automatski
                 if (!step.aiTarget) {
                     aiStatus.innerText = "✅ Slika prihvaćena!";
                     totalScore += step.points;
@@ -444,11 +453,9 @@
                     return;
                 }
 
-                // AI klasifikacija slike
                 const predictions = await aiModel.classify(imgElement);
                 console.log("AI Prepoznato:", predictions);
 
-                // Provjera sadrži li ijedan AI rezultat traženu riječ
                 const found = predictions.some(p => p.className.toLowerCase().includes(step.aiTarget));
 
                 if (found) {
@@ -458,7 +465,7 @@
                     document.getElementById('next-btn').classList.remove('hidden');
                 } else {
                     const topGuess = predictions[0] ? predictions[0].className.split(',')[0] : 'nepoznato';
-                    aiStatus.innerHTML = `❌ AI vidi: <span class="font-bold text-red-400">${topGuess}</span>. Pokušajte ponovno uslikati (${step.aiTarget})!`;
+                    aiStatus.innerHTML = `❌ AI vidi: <span class="font-bold text-red-400">${topGuess}</span>. Pokušajte ponovno uslikati (${step.aiTarget}) ili preskočite!`;
                 }
             }
             reader.readAsDataURL(file);
