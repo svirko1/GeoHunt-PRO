@@ -1,532 +1,448 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html lang="hr" class="dark h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoHunt PRO</title>
-    
-    <!-- FAVICON LOGO ZA PREGLEDNIK (TAB) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2310b981'/><stop offset='100%' stop-color='%23059669'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M50 18 C33 18 20 31 20 47 C20 66 50 84 50 84 C50 84 80 66 80 47 C80 31 67 18 50 18 Z' fill='url(%23g)'/><polygon points='50,34 58,52 50,47 42,52' fill='%23ffffff'/><polygon points='50,60 58,52 50,47 42,52' fill='%2394a3b8'/></svg>">
-
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- QR Skener i Generator -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- TensorFlow.js & MobileNet AI Model -->
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- TensorFlow.js & MobileNet -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <!-- Leaflet Interaktivne Karte -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Html5Qrcode & QRCode.js -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
-        .compass-arrow-container {
-            transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
-            will-change: transform;
-        }
-        body { padding-bottom: 70px; }
-        #editor-map, #play-map { height: 220px; width: 100%; border-radius: 0.75rem; z-index: 10; }
-        
-        /* TEMATSKE BOJE ZA IGRAČKI EKRAN */
-        .theme-pirate { background-color: #2b1d0c !important; color: #fef08a !important; font-family: 'Georgia', serif; }
-        .theme-cyberpunk { background-color: #09090b !important; color: #22d3ee !important; font-family: monospace; }
-        .theme-medieval { background-color: #1c1917 !important; color: #e7e5e4 !important; }
-        .theme-default { background-color: #0f172a; color: #ffffff; }
+        .theme-default { background-color: #0f172a; color: #f8fafc; }
+        .theme-pirate { background-color: #2a1a08; color: #fef3c7; }
+        .theme-sci-fi { background-color: #052e16; color: #dcfce7; }
+        #play-map, #editor-map { height: 220px; width: 100%; border-radius: 1rem; }
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-slate-900 text-slate-100 min-h-full flex flex-col font-sans pb-20">
 
-    <!-- GORNJA NAVIGACIJA S NOVIM LOGOM -->
-    <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-40 p-4 border-b border-slate-700 flex justify-between items-center">
-        <!-- MODERAN LOGO I NAZIV -->
-        <div onclick="showScreen('home')" class="flex items-center space-x-2.5 cursor-pointer">
-            <svg width="32" height="32" viewBox="0 0 100 100" class="flex-shrink-0">
-                <defs>
-                    <linearGradient id="gh-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#10b981"/>
-                        <stop offset="100%" stop-color="#059669"/>
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" rx="24" fill="#0f172a"/>
-                <path d="M50 18 C33 18 20 31 20 47 C20 66 50 84 50 84 C50 84 80 66 80 47 C80 31 67 18 50 18 Z" fill="url(#gh-grad)"/>
-                <polygon points="50,34 58,52 50,47 42,52" fill="#ffffff"/>
-                <polygon points="50,60 58,52 50,47 42,52" fill="#94a3b8"/>
-            </svg>
-            <span class="text-xl font-black text-white tracking-tight">
-                GEO<span class="text-emerald-400">HUNT</span> <span class="text-xs bg-emerald-500 text-slate-950 px-1.5 py-0.5 rounded font-black align-middle">PRO</span>
-            </span>
+    <!-- TOP NAVIGATION / HEADER -->
+    <header class="bg-slate-950 border-b border-slate-800 p-4 sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🧭</span>
+            <h1 class="text-lg font-black tracking-wider text-emerald-400">GeoHunt <span class="text-xs bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">PRO</span></h1>
         </div>
         
-        <div class="flex items-center space-x-2">
-            <!-- GUMB INVENTAR -->
-            <button onclick="openInventoryModal()" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 text-xs font-bold flex items-center space-x-1">
-                <span>🎒</span> <span id="inventory-count">0</span>
-            </button>
-
-            <!-- ODABIR JEZIKA -->
-            <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-700 text-xs text-white border border-slate-600 rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-bold">
+        <div class="flex items-center space-x-3">
+            <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-lg p-1.5 focus:outline-none">
                 <option value="hr">🇭🇷 HR</option>
                 <option value="en">🇬🇧 EN</option>
                 <option value="de">🇩🇪 DE</option>
             </select>
-
-            <div id="nav-user-info" class="text-xs font-bold bg-slate-700/60 px-3 py-1.5 rounded-lg border border-slate-600">
-                <span id="nav-username" data-i18n="unregistered">Neprijavljen</span>
-            </div>
+            <button onclick="openInventoryModal()" class="relative p-2 bg-slate-900 border border-slate-700 rounded-lg text-amber-400">
+                🎁 <span id="inventory-count" class="absolute -top-1 -right-1 bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
+            </button>
         </div>
-    </nav>
+    </header>
 
-    <main class="container mx-auto p-4 max-w-xl flex-1 flex flex-col justify-start">
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow p-4 max-w-md mx-auto w-full space-y-6">
 
-        <!-- 1. POČETNI EKRAN -->
-        <div id="screen-home" class="space-y-6 text-center my-auto">
-            <div class="space-y-2">
-                <span class="text-5xl">🧭</span>
-                <h2 class="text-3xl font-black">GeoHunt PRO</h2>
-                <p data-i18n="subtitle" class="text-slate-400 text-sm">Započnite avanturu na otvorenom!</p>
-            </div>
-
-            <!-- PROGNOZA -->
-            <div class="bg-gradient-to-r from-sky-900/60 to-slate-800 p-4 rounded-2xl border border-sky-500/30 flex items-center justify-between text-left">
-                <div class="flex items-center space-x-3">
-                    <span id="weather-icon" class="text-4xl">☀️</span>
-                    <div>
-                        <p id="weather-temp" class="text-xl font-black text-sky-300">Učitavanje...</p>
-                        <p id="weather-desc" data-i18n="weather_location" class="text-xs text-slate-400">Lokacija: Trenutačna pozicija</p>
-                    </div>
+        <!-- VREMENSKA PROGNOZA (Open-Meteo) -->
+        <div id="weather-box" class="bg-slate-800/60 border border-slate-700/50 p-3 rounded-2xl flex justify-between items-center text-xs">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">🌤️</span>
+                <div>
+                    <p id="weather-temp" class="font-bold text-slate-200">Učitavanje...</p>
+                    <p id="weather-desc" class="text-[10px] text-slate-400" data-i18n="weather_location">Lokacija: Trenutačna pozicija</p>
                 </div>
-                <button onclick="fetchWeather()" data-i18n="refresh" class="text-xs bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 px-2.5 py-1.5 rounded-lg font-bold border border-sky-400/30">🔄 Osvježi</button>
+            </div>
+            <button onclick="fetchWeather()" class="text-xs text-emerald-400" data-i18n="refresh">🔄 Osvježi</button>
+        </div>
+
+        <!-- EKRAN: POČETNA / IGRA -->
+        <section id="screen-home" class="space-y-4">
+            <div class="text-center space-y-1">
+                <h2 class="text-xl font-bold text-slate-100" data-i18n="subtitle">Započnite avanturu na otvorenom!</h2>
             </div>
 
-            <!-- UNOS KODA / QR -->
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
-                <button onclick="startQRScanner()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center space-x-2">
-                    <span>📷</span> <span data-i18n="scan_qr">Skeniraj QR Kod Avanture</span>
+            <!-- SKENER KOD / RUČNI UNOS -->
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <button onclick="startQRScanner()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/10">
+                    <span>📷</span>
+                    <span data-i18n="scan_qr">Skeniraj QR Kod Avanture</span>
                 </button>
 
-                <div id="qr-reader-container" class="hidden my-2 p-2 bg-slate-950 rounded-xl border border-slate-700">
-                    <div id="qr-reader" class="w-full overflow-hidden rounded-lg"></div>
-                    <button onclick="stopQRScanner()" data-i18n="close_scanner" class="mt-2 text-xs text-red-400 font-bold underline">Zatvori Skener</button>
+                <div id="qr-reader-container" class="hidden space-y-2">
+                    <div id="qr-reader" class="rounded-xl overflow-hidden border border-slate-700"></div>
+                    <button onclick="stopQRScanner()" class="w-full py-1.5 bg-red-500/20 text-red-400 text-xs rounded-lg border border-red-500/30" data-i18n="close_scanner">Zatvori Skener</button>
                 </div>
 
-                <div class="relative flex py-1 items-center">
-                    <div class="flex-grow border-t border-slate-700"></div>
-                    <span data-i18n="or_manual" class="flex-shrink mx-4 text-slate-500 text-xs font-bold uppercase">ili ručno</span>
-                    <div class="flex-grow border-t border-slate-700"></div>
+                <div class="flex items-center space-x-2 my-2">
+                    <hr class="flex-grow border-slate-700">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold" data-i18n="or_manual">ili ručno</span>
+                    <hr class="flex-grow border-slate-700">
+                </div>
+
+                <div class="space-y-2">
+                    <textarea id="game-id-input" placeholder="Unesite ID (npr. GH-101) ili zalijepite cijeli kod avanture..." class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl focus:border-emerald-500 focus:outline-none text-slate-200 h-20"></textarea>
+                    <button onclick="loadGame()" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-sm" data-i18n="start_game">Započni Igru 🚀</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- EKRAN: ISTRAŽI JAVNE AVANTURE -->
+        <section id="screen-explore" class="hidden space-y-4">
+            <div>
+                <h3 class="font-bold text-slate-200" data-i18n="explore_title">Istraži Avanture</h3>
+                <p class="text-xs text-slate-400" data-i18n="explore_sub">Odaberite neku od javno dostupnih ruta i krenite u potragu:</p>
+            </div>
+            <div id="explore-list" class="space-y-3"></div>
+        </section>
+
+        <!-- EKRAN: TIMSKI NAČIN / LOBBY -->
+        <section id="screen-multiplayer" class="hidden space-y-4">
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <h3 class="font-bold text-slate-200" data-i18n="team_mode">Timski Način (Lobby Uživo)</h3>
+                <p class="text-xs text-slate-400" data-i18n="team_sub">Igrajte uživo s prijateljima na istoj ruti i pratite bodove u stvarnom vremenu.</p>
+                
+                <input type="text" id="lobby-hunt-id" placeholder="Unesite ID Avanture za Lobby" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                <button onclick="createLobby()" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs" data-i18n="btn_create_room">Kreiraj Timsku Sobu 👥</button>
+
+                <div id="lobby-active" class="hidden p-3 bg-slate-950 rounded-xl border border-indigo-500/30 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-indigo-400" data-i18n="room_active">SOBA AKTIVNA</span>
+                        <span id="lobby-code-display" class="font-mono text-sm font-black text-amber-400">---</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400" data-i18n="share_code">Podijelite ovaj kod timovima za prijavu.</p>
+                    <div class="space-y-1">
+                        <p class="text-[11px] font-bold text-slate-300" data-i18n="registered_teams">Prijavljeni Timovi:</p>
+                        <ul id="lobby-teams-list" class="text-xs space-y-1 text-slate-400"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- EKRAN: EDITOR AVANTURA -->
+        <section id="screen-editor" class="hidden space-y-4">
+            <h3 class="font-bold text-slate-200" data-i18n="editor_title">Editor Avanture PRO</h3>
+            
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold" data-i18n="hunt_name">Naziv Avanture</label>
+                    <input type="text" id="hunt-title" placeholder="npr. Potraga za Blagom" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl mt-1">
                 </div>
 
                 <div>
-                    <input type="text" id="game-id-input" placeholder="Upišite ID ili zalijepite kod" class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono focus:outline-none focus:border-emerald-500">
+                    <label class="text-[11px] text-slate-400 font-bold">Tema Interfejsa</label>
+                    <select id="hunt-theme" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl mt-1">
+                        <option value="default">Standardna Dark</option>
+                        <option value="pirate">Gusarska (Pirate)</option>
+                        <option value="sci-fi">Sci-Fi Cyber</option>
+                    </select>
                 </div>
-                <button onclick="loadGame()" data-i18n="start_game" class="w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Započni Igru 🚀</button>
-            </div>
-        </div>
 
-        <!-- 2. EXPLORE TAB -->
-        <div id="screen-explore" class="hidden space-y-4">
-            <h2 data-i18n="explore_title" class="text-2xl font-black text-emerald-400">Istraži Avanture</h2>
-            <p data-i18n="explore_sub" class="text-slate-400 text-xs">Odaberite neku od javno dostupnih ruta i krenite u potragu:</p>
-            <div id="explore-list" class="space-y-3"></div>
-        </div>
+                <hr class="border-slate-700">
 
-        <!-- 3. MULTIPLAYER -->
-        <div id="screen-multiplayer" class="hidden space-y-5">
-            <h2 data-i18n="team_mode" class="text-2xl font-black text-amber-400">Timski Način (Lobby Uživo)</h2>
-            <p data-i18n="team_sub" class="text-slate-400 text-xs">Igrajte uživo s prijateljima na istoj ruti i pratite bodove u stvarnom vremenu.</p>
-            
-            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-                <h3 data-i18n="create_room" class="font-bold text-white text-sm uppercase tracking-wider">Stvori novu timsku sobu</h3>
-                <input type="text" id="lobby-hunt-id" placeholder="Unesite ID avanture za grupu" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm">
-                <button onclick="createLobby()" data-i18n="btn_create_room" class="w-full bg-amber-500 text-slate-950 font-black py-3 rounded-xl">Kreiraj Timsku Sobu 👥</button>
-            </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] text-slate-400 font-bold" data-i18n="step_type">Vrsta Koraka</label>
+                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <option value="info">ℹ️ Informativna Poruka</option>
+                        <option value="location">📍 GPS Lokacija / Cilj</option>
+                        <option value="safe">🔐 Digitalni Sef (Šifra)</option>
+                        <option value="audio">🎵 Audio Zagonetka</option>
+                        <option value="barcode">📱 Skeniranje Barkoda/NFC</option>
+                        <option value="quiz-mc">❓ Kviz (Višestruki Izbor)</option>
+                        <option value="quiz-open">✏️ Kviz (Otvoreno Pitanje)</option>
+                        <option value="photo">📸 AI Prepoznavanje Slike</option>
+                    </select>
 
-            <div id="lobby-active" class="hidden bg-slate-800 p-5 rounded-2xl border border-amber-500/40 space-y-4 text-center">
-                <span data-i18n="room_active" class="text-xs bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-mono font-bold">SOBA AKTIVNA</span>
-                <h3 id="lobby-code-display" class="text-3xl font-mono font-black text-amber-400"></h3>
-                <p data-i18n="share_code" class="text-xs text-slate-400">Podijelite ovaj kod timovima za prijavu.</p>
-                <div class="border-t border-slate-700 pt-3 text-left">
-                    <p data-i18n="registered_teams" class="text-xs font-bold text-slate-300 mb-2">Prijavljeni Timovi:</p>
-                    <ul id="lobby-teams-list" class="space-y-1.5 text-sm font-mono text-slate-300"></ul>
-                </div>
-            </div>
-        </div>
+                    <input type="text" id="step-text" placeholder="Tekst / Pitanje / Uputa..." class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    <input type="text" id="step-image" placeholder="URL Slike za prikaz (opcionalno)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
 
-        <!-- 4. EDITOR AVANTURA -->
-        <div id="screen-editor" class="hidden space-y-5 py-2">
-            <h2 data-i18n="editor_title" class="text-2xl font-black text-emerald-400">Editor Avanture PRO</h2>
-            
-            <div class="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700">
-                <!-- OSNOVNE POSTAVKE RUTE -->
-                <div class="space-y-3 pb-3 border-b border-slate-700">
-                    <div>
-                        <label data-i18n="hunt_name" class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
-                        <input type="text" id="hunt-title" placeholder="Npr. Tajna Gusarske Rupa" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
+                    <!-- DINAMIČKI ELEMENTI OVISNO O VRSTI KORAKA -->
+                    <div id="field-location" class="hidden space-y-2">
+                        <p class="text-[10px] text-slate-400" data-i18n="target_coords">Kliknite na kartu za odabir koordinata cilja:</p>
+                        <div id="editor-map"></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" id="step-lat" placeholder="Latituda" class="p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                            <input type="number" step="any" id="step-lng" placeholder="Longituda" class="p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        </div>
+                        <input type="number" id="step-radius" placeholder="Radijus tolerancije u metrima (npr. 15)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
                     </div>
-                    
-                    <!-- 🎨 VIZUALNA TEMA RUTE -->
-                    <div>
-                        <label class="block text-xs font-bold text-purple-400 uppercase mb-1">🎨 Vizualna Tema Rute</label>
-                        <select id="hunt-theme" class="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/40 text-white font-semibold">
-                            <option value="default">🌐 Standardna Modern (Tamna)</option>
-                            <option value="pirate">🏴‍☠️ Gusarska Potraga (Topli tonovi)</option>
-                            <option value="cyberpunk">🤖 Cyberpunk / Sci-Fi (Neon Plava)</option>
-                            <option value="medieval">🛡️ Srednjovjekovna Vitezovi (Kameni stil)</option>
+
+                    <div id="field-safe" class="hidden">
+                        <input type="text" id="safe-code" placeholder="Točna šifra sefa (npr. 1234)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    </div>
+
+                    <div id="field-audio" class="hidden space-y-2">
+                        <input type="text" id="audio-url" placeholder="URL MP3 audio datoteke" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <input type="text" id="audio-answer" placeholder="Točan odgovor na zagonetku" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    </div>
+
+                    <div id="field-barcode" class="hidden">
+                        <input type="text" id="barcode-target" placeholder="Vrijednost Barkoda / QR koda za provjeru" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    </div>
+
+                    <div id="field-quiz-mc" class="hidden space-y-2">
+                        <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <input type="text" id="mc-3" placeholder="Opcija C" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <select id="mc-correct" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                            <option value="0">Točna je Opcija A</option>
+                            <option value="1">Točna je Opcija B</option>
+                            <option value="2">Točna je Opcija C</option>
                         </select>
                     </div>
-                </div>
 
-                <!-- POSTAVKE KORAKA -->
-                <h3 class="font-black text-sm uppercase tracking-wider text-emerald-400">Dodavanje Novi Korak:</h3>
-                
-                <div>
-                    <label data-i18n="step_type" class="block text-xs font-semibold text-slate-400 mb-1">Vrsta Koraka</label>
-                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
-                        <option value="location">📍 GPS Odredište (Kompas + Karta)</option>
-                        <option value="safe">🔒 Digitalni Sef (Unos Brojne Šifre)</option>
-                        <option value="quiz-mc">❓ Pitanje s ponuđenim odgovorima</option>
-                        <option value="quiz-open">✏️ Pitanje otvorenog tipa</option>
-                        <option value="photo">📸 Foto Zadatak (Slikanje + AI Provjera)</option>
-                        <option value="audio">🎧 Audio Zagonetka (Sluh + Zvuk)</option>
-                        <option value="barcode">🏷️ NFC / Barkod Skeniranje</option>
-                        <option value="info">ℹ️ Info Slajd / Trag</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label data-i18n="step_text" class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa</label>
-                    <textarea id="step-text" placeholder="Unesite tekst ili trag zadatka..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">URL Slike (Neobavezno)</label>
-                        <input type="text" id="step-image" placeholder="https://..." class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs">
+                    <div id="field-quiz-open" class="hidden">
+                        <input type="text" id="open-answer" placeholder="Točan tekstualni odgovor" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
                     </div>
-                    <!-- ⏱️ VREMENSKO OGRANIČENJE -->
-                    <div>
-                        <label class="block text-xs font-semibold text-amber-400 mb-1">⏱️ Vrijeme (Sekundi, 0=Bez)</label>
-                        <input type="number" id="step-timer" value="0" min="0" class="w-full p-2.5 rounded-xl bg-slate-950 border border-amber-500/30 text-xs text-center font-bold">
+
+                    <div id="field-photo-ai" class="hidden">
+                        <input type="text" id="ai-target" placeholder="AI Riječ (engleski: dog, bottle, car...)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
                     </div>
-                </div>
 
-                <!-- 💡 TRAG / POMOĆ (HINT) -->
-                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-700 space-y-2">
-                    <label class="block text-xs font-bold text-sky-400 uppercase">💡 Trag / Pomoć (Hitni nagovještaj)</label>
-                    <input type="text" id="step-hint-text" placeholder="Npr. Potražite iza hrastovog drveta" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-xs">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[11px] text-slate-400">Cijena u bodovima za trag:</span>
-                        <input type="number" id="step-hint-cost" value="5" min="0" class="w-20 p-1 rounded bg-slate-900 border border-slate-700 text-xs text-center font-bold text-amber-400">
-                    </div>
-                </div>
-
-                <!-- 🎁 SAKUPLJAČKI PREDMET (COLLECTIBLE) -->
-                <div class="bg-amber-500/5 p-3 rounded-xl border border-amber-500/20">
-                    <label class="block text-xs font-bold text-amber-400 uppercase mb-1">🎁 Nagradni Predmet za Inventar (Neobavezno)</label>
-                    <input type="text" id="step-item-reward" placeholder="Npr. Zlatni Ključ ili Karta Zamka" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
-                </div>
-
-                <div id="field-points" class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl">
-                    <label data-i18n="step_pts" class="block text-xs font-bold text-amber-400 uppercase mb-1">⭐ Bodovi za ovaj korak</label>
-                    <input type="number" id="step-points" value="10" min="0" class="w-full p-2 rounded-lg bg-slate-950 text-white text-center font-bold">
-                </div>
-
-                <!-- DYNAMIC FIELDS -->
-                <!-- 🗺️ INTERAKTIVNA KARTA BUILDER -->
-                <div id="field-location" class="space-y-2 border-l-2 border-emerald-500 pl-3">
-                    <p class="text-xs text-emerald-400 font-bold">📍 Odaberite točku na karti ili kliknite za koordinate:</p>
-                    <div id="editor-map"></div>
-                    <div class="grid grid-cols-3 gap-2 pt-1">
-                        <input type="number" step="any" id="step-lat" placeholder="Geog. širina" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
-                        <input type="number" step="any" id="step-lng" placeholder="Geog. duljina" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
-                        <input type="number" id="step-radius" value="20" placeholder="Radijus (m)" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-center" title="Dopušteno odstupanje u metrima">
-                    </div>
-                </div>
-
-                <!-- 🔒 DIGITALNI SEF -->
-                <div id="field-safe" class="hidden space-y-2 border-l-2 border-amber-500 pl-3">
-                    <label class="block text-xs font-bold text-amber-400">Brojna Šifra za Otvaranje Sefa (npr. 4729)</label>
-                    <input type="text" id="safe-code" placeholder="Npr. 1234" class="w-full p-2.5 rounded-lg bg-slate-950 font-mono text-center text-lg border border-amber-500/40 tracking-widest">
-                </div>
-
-                <!-- 🎧 AUDIO ZAGONETKA -->
-                <div id="field-audio" class="hidden space-y-2 border-l-2 border-sky-500 pl-3">
-                    <label class="block text-xs font-bold text-sky-400">URL Audio Datoteke (MP3 / WAV)</label>
-                    <input type="text" id="audio-url" placeholder="https://primjer.com/zvuk.mp3" class="w-full p-2 rounded-lg bg-slate-950 text-xs">
-                    <input type="text" id="audio-answer" placeholder="Točno rješenje zvuka" class="w-full p-2 rounded-lg bg-slate-950 text-xs">
-                </div>
-
-                <!-- 🏷️ NAKOD / BARKOD -->
-                <div id="field-barcode" class="hidden space-y-2 border-l-2 border-rose-500 pl-3">
-                    <label class="block text-xs font-bold text-rose-400">Točan Barkod / Kod s terena</label>
-                    <input type="text" id="barcode-target" placeholder="Upišite točan kod za usporedbu" class="w-full p-2 rounded-lg bg-slate-950 text-xs font-mono">
-                </div>
-
-                <div id="field-quiz-mc" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3">
-                    <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
-                    <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
-                    <input type="text" id="mc-3" placeholder="Opcija C" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
-                    <select id="mc-correct" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
-                        <option value="0">Točan odgovor: Opcija A</option>
-                        <option value="1">Točan odgovor: Opcija B</option>
-                        <option value="2">Točan odgovor: Opcija C</option>
-                    </select>
-                </div>
-
-                <div id="field-quiz-open" class="hidden border-l-2 border-emerald-500 pl-3">
-                    <input type="text" id="open-answer" placeholder="Točna riječ/odgovor" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
-                </div>
-
-                <div id="field-photo-ai" class="hidden border-l-2 border-purple-500 pl-3 space-y-2">
-                    <label data-i18n="ai_word" class="block text-xs font-bold text-purple-400 uppercase">AI Riječ za Prepoznavanje (Engleski)</label>
-                    <input type="text" id="ai-target" placeholder="npr. dog, cat, car, tree" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
-                </div>
-
-                <button onclick="addStep()" data-i18n="btn_add_step" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl border border-slate-500">+ Dodaj Korak u Rutu</button>
-            </div>
-
-            <!-- POPIS KORAKA U EDITORU -->
-            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Dodani Koraci (<span id="step-count-badge">0</span>):</h4>
-                <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300"></ul>
-            </div>
-
-            <button onclick="publishHunt()" data-i18n="btn_publish" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-2xl text-lg shadow-lg">Objavi Avanturu 🎯</button>
-        </div>
-
-        <!-- 5. LEADERBOARD -->
-        <div id="screen-leaderboard" class="hidden space-y-4">
-            <h2 data-i18n="nav_leaderboard" class="text-2xl font-black text-amber-400">Rang Ljestvica 🏆</h2>
-            <p data-i18n="leaderboard_sub" class="text-xs text-slate-400">Najbolji igrači s najviše ostvarenih bodova:</p>
-            <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-                <div id="leaderboard-list" class="divide-y divide-slate-700"></div>
-            </div>
-        </div>
-
-        <!-- 6. PROFIL -->
-        <div id="screen-profile" class="hidden space-y-5">
-            <div id="auth-box" class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
-                <div class="flex justify-around border-b border-slate-700 pb-3">
-                    <button id="tab-login-btn" onclick="switchAuthMode('login')" data-i18n="auth_login" class="font-bold text-emerald-400 border-b-2 border-emerald-400 pb-1">Prijava</button>
-                    <button id="tab-signup-btn" onclick="switchAuthMode('signup')" data-i18n="auth_signup" class="font-bold text-slate-400 pb-1">Registracija</button>
-                </div>
-
-                <div class="space-y-3">
-                    <div>
-                        <label data-i18n="username" class="block text-xs font-bold text-slate-400 mb-1">Korisničko Ime</label>
-                        <input type="text" id="auth-username" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
-                    </div>
-                    <div>
-                        <label data-i18n="password" class="block text-xs font-bold text-slate-400 mb-1">Lozinka</label>
-                        <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
-                    </div>
-                    <button id="auth-submit-btn" onclick="handleAuth()" data-i18n="auth_login" class="w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl">Prijavi Se</button>
-                </div>
-            </div>
-
-            <div id="profile-box" class="hidden space-y-5">
-                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 text-center space-y-3">
-                    <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-3xl font-black mx-auto border-2 border-emerald-500">
-                        👤
-                    </div>
-                    <h3 id="profile-username-display" class="text-2xl font-black"></h3>
-                    <div class="flex justify-center space-x-4">
-                        <div class="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-                            <p data-i18n="points" class="text-[10px] text-slate-400 uppercase font-bold">Bodovi</p>
-                            <p id="profile-score" class="text-lg font-black text-amber-400">0</p>
-                        </div>
-                        <div class="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-                            <p data-i18n="completed_routes" class="text-[10px] text-slate-400 uppercase font-bold">Ruta</p>
-                            <p id="profile-completed" class="text-lg font-black text-emerald-400">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-3">
-                    <h4 data-i18n="my_badges" class="font-bold text-sm uppercase tracking-wider text-slate-300">Moji Bedževi</h4>
-                    <div id="badges-container" class="grid grid-cols-3 gap-3 text-center"></div>
-                </div>
-
-                <button onclick="logout()" data-i18n="logout" class="w-full bg-red-500/20 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl">Odjavi Se</button>
-            </div>
-        </div>
-
-        <!-- MODAL ZA INVENTAR -->
-        <div id="inventory-modal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
-            <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
-                <h3 class="text-xl font-black text-amber-400 flex items-center justify-center space-x-2">
-                    <span>🎒</span> <span>Vaš Inventar</span>
-                </h3>
-                <div id="inventory-items-list" class="space-y-2 text-left max-h-60 overflow-y-auto"></div>
-                <button onclick="closeInventoryModal()" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-xl">Zatvori</button>
-            </div>
-        </div>
-
-        <!-- MODAL ZA QR -->
-        <div id="qr-modal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
-            <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
-                <h3 data-i18n="published_title" class="text-xl font-black text-emerald-400">🎉 Avantura Objavljena!</h3>
-                <div id="qrcode" class="flex justify-center p-4 bg-white rounded-xl"></div>
-                <p id="published-id-display" class="font-mono text-amber-400 font-bold text-lg"></p>
-                <button onclick="closeQRModal()" data-i18n="close" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Zatvori</button>
-            </div>
-        </div>
-
-        <!-- 7. GAMEPLAY -->
-        <div id="screen-game" class="hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300">
-            <div class="flex justify-between items-center bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/50 backdrop-blur">
-                <span id="game-title-display" class="font-black text-emerald-400"></span>
-                <div class="flex items-center space-x-2">
-                    <!-- TAJMER -->
-                    <span id="game-step-timer" class="hidden text-xs bg-red-500/20 text-red-400 font-mono font-black px-2.5 py-1 rounded-full border border-red-500/30">⏱️ 0s</span>
-                    <span id="score-display" class="text-xs bg-amber-500/20 text-amber-400 font-black px-2.5 py-1 rounded-full">⭐ 0</span>
-                    <span id="game-progress" class="text-xs bg-slate-700 px-2.5 py-1 rounded-full font-mono">1/1</span>
-                </div>
-            </div>
-
-            <!-- GUMB ZA POMOĆ / TRAG -->
-            <div id="hint-box" class="hidden bg-sky-950/50 border border-sky-500/30 p-3 rounded-2xl flex justify-between items-center text-xs">
-                <span id="hint-text-display" class="text-sky-200">Potrebna pomoć?</span>
-                <button onclick="buyHint()" id="buy-hint-btn" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-3 py-1.5 rounded-xl">💡 Pomoć (-5pt)</button>
-            </div>
-
-            <div class="bg-slate-800/90 backdrop-blur p-6 rounded-2xl border border-slate-700/70 text-center space-y-4">
-                <div id="play-image-container" class="hidden my-2">
-                    <img id="play-image" src="" class="w-full max-h-60 object-cover rounded-xl border border-slate-700 shadow-md">
-                </div>
-                <p id="play-text" class="text-lg font-bold text-slate-100"></p>
-
-                <!-- 📍 VEKTORSKI KOMPAS I PRECIZNA METRAŽA -->
-                <div id="play-location-container" class="hidden space-y-3">
-                    <div id="play-map" class="mb-2"></div>
-                    <div class="flex flex-col items-center justify-center p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
-                        <div class="flex justify-between items-center w-full px-2 text-xs text-slate-400 font-mono font-bold">
-                            <span id="gps-accuracy">Preciznost GPS-a: -- m</span>
-                            <span id="heading-display">Orijentacija: --°</span>
-                        </div>
+                    <div id="field-points" class="hidden space-y-2">
+                        <input type="number" id="step-points" placeholder="⭐ Bodovi za ovaj korak" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                        <input type="number" id="step-timer" placeholder="⏱️ Ograničenje vremena u sekundama (0 za bez)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
                         
-                        <!-- PRECISION VECTOR COMPASS -->
-                        <div class="relative w-36 h-36 flex items-center justify-center bg-slate-900 rounded-full border-4 border-slate-800 shadow-inner">
-                            <!-- Oznake strana svijeta -->
-                            <span class="absolute top-1 text-[10px] font-black text-red-500">N</span>
-                            <span class="absolute right-1.5 text-[10px] font-bold text-slate-500">E</span>
-                            <span class="absolute bottom-1 text-[10px] font-bold text-slate-500">S</span>
-                            <span class="absolute left-1.5 text-[10px] font-bold text-slate-500">W</span>
-                            
-                            <!-- Rotirajuća vektorska igla -->
-                            <div id="compass-arrow" class="compass-arrow-container w-full h-full flex items-center justify-center">
-                                <svg width="80" height="80" viewBox="0 0 100 100" class="drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
-                                    <!-- Sjeverni/Ciljani vrh igle (Svijetli/Smaragdni) -->
-                                    <polygon points="50,10 62,50 50,42" fill="#10b981"/>
-                                    <polygon points="50,10 38,50 50,42" fill="#34d399"/>
-                                    <!-- Južni vrh igle (Tamniji/Sivi) -->
-                                    <polygon points="50,90 62,50 50,58" fill="#64748b"/>
-                                    <polygon points="50,90 38,50 50,58" fill="#94a3b8"/>
-                                    <!-- Središnji zglob -->
-                                    <circle cx="50" cy="50" r="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
-                                </svg>
-                            </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="step-hint-text" placeholder="💡 Tekst pomoći/traga" class="p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                            <input type="number" id="step-hint-cost" placeholder="Cijena traga (bodovi)" class="p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
                         </div>
 
-                        <!-- DISPLAY PRECIZNE METRAŽE -->
-                        <div class="bg-emerald-500/10 border border-emerald-500/30 px-5 py-2 rounded-xl text-center w-full">
-                            <span id="distance-display" class="text-2xl font-black font-mono text-emerald-400 tracking-wider">--- m</span>
-                        </div>
+                        <input type="text" id="step-item-reward" placeholder="🎁 Nagradni predmet u inventaru (opcionalno)" class="w-full p-2 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    </div>
+
+                    <button onclick="addStep()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl text-xs" data-i18n="btn_add_step">+ Dodaj Korak u Rutu</button>
+                </div>
+            </div>
+
+            <!-- POPIS PROJEKTIRANIH KORAKA -->
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <h4 class="text-xs font-bold text-slate-300">Dodani Koraci:</h4>
+                    <span id="step-count-badge" class="bg-slate-950 text-emerald-400 font-bold px-2 py-0.5 rounded-full text-[10px]">0</span>
+                </div>
+                <ul id="editor-steps-list" class="space-y-1 text-xs text-slate-400"></ul>
+                <button onclick="publishHunt()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg" data-i18n="btn_publish">Objavi Avanturu 🎯</button>
+            </div>
+        </section>
+
+        <!-- EKRAN: RANG LISTA / LEADERBOARD -->
+        <section id="screen-leaderboard" class="hidden space-y-4">
+            <div>
+                <h3 class="font-bold text-slate-200">🏆 Rang Lista Igrača</h3>
+                <p class="text-xs text-slate-400" data-i18n="leaderboard_sub">Najbolji igrači s najviše ostvarenih bodova:</p>
+            </div>
+            <div id="leaderboard-list" class="bg-slate-800 rounded-2xl border border-slate-700 divide-y divide-slate-700/50 overflow-hidden"></div>
+        </section>
+
+        <!-- EKRAN: PROFIL KORISNIKA -->
+        <section id="screen-profile" class="hidden space-y-4">
+            <!-- PRIJAVA / REGISTRACIJA -->
+            <div id="auth-box" class="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-3">
+                <div class="flex space-x-4 border-b border-slate-700 pb-2">
+                    <button onclick="switchAuthMode('login')" id="tab-login-btn" class="font-bold text-emerald-400 border-b-2 border-emerald-400 pb-1" data-i18n="auth_login">Prijava</button>
+                    <button onclick="switchAuthMode('signup')" id="tab-signup-btn" class="font-bold text-slate-400 pb-1" data-i18n="auth_signup">Registracija</button>
+                </div>
+                <input type="text" id="auth-username" placeholder="Korisničko ime" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                <input type="password" id="auth-password" placeholder="Lozinka" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                <button onclick="handleAuth()" id="auth-submit-btn" class="w-full py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs">Prijava</button>
+            </div>
+
+            <!-- PROFIL PRIJAVLJENOG KORISNIKA -->
+            <div id="profile-box" class="hidden bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl">👤</div>
+                    <div>
+                        <h3 id="profile-username-display" class="font-bold text-slate-100">Korisnik</h3>
+                        <p class="text-[10px] text-slate-400">Status: Aktivni Istraživač</p>
                     </div>
                 </div>
 
-                <!-- 🔒 SEF INTERFEJS -->
-                <div id="play-safe-container" class="hidden space-y-4">
-                    <div class="p-6 bg-slate-950 rounded-2xl border-2 border-amber-500/40 space-y-4">
-                        <span class="text-4xl">🔐</span>
-                        <input type="text" id="safe-input" readonly placeholder="----" class="w-full text-center text-3xl font-mono font-black tracking-widest p-3 bg-slate-900 border border-amber-500 rounded-xl text-amber-400">
-                        <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
-                            <button onclick="pressSafe('1')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">1</button>
-                            <button onclick="pressSafe('2')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">2</button>
-                            <button onclick="pressSafe('3')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">3</button>
-                            <button onclick="pressSafe('4')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">4</button>
-                            <button onclick="pressSafe('5')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">5</button>
-                            <button onclick="pressSafe('6')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">6</button>
-                            <button onclick="pressSafe('7')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">7</button>
-                            <button onclick="pressSafe('8')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">8</button>
-                            <button onclick="pressSafe('9')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">9</button>
-                            <button onclick="clearSafe()" class="p-3 bg-red-500/20 text-red-400 rounded-xl font-bold">C</button>
-                            <button onclick="pressSafe('0')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">0</button>
-                            <button onclick="checkSafeCode()" class="p-3 bg-amber-500 text-slate-950 rounded-xl font-bold">OK</button>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                        <p id="profile-score" class="font-mono text-lg font-black text-amber-400">0</p>
+                        <p class="text-[10px] text-slate-400" data-i18n="points">Bodovi</p>
+                    </div>
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                        <p id="profile-completed" class="font-mono text-lg font-black text-emerald-400">0</p>
+                        <p class="text-[10px] text-slate-400" data-i18n="completed_routes">Završenih Ruta</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold text-slate-300 mb-2" data-i18n="my_badges">Moji Bedževi</h4>
+                    <div id="badges-container" class="grid grid-cols-3 gap-2 text-center"></div>
+                </div>
+
+                <button onclick="logout()" class="w-full py-2 bg-red-500/20 text-red-400 font-bold rounded-xl text-xs border border-red-500/30" data-i18n="logout">Odjavi Se</button>
+            </div>
+        </section>
+
+        <!-- EKRAN: INTERFEJS ZA IGRANJE RUTE -->
+        <section id="screen-game" class="hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300">
+            <!-- POKAZATELJ NAPREDKA -->
+            <div class="flex justify-between items-center bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur">
+                <div>
+                    <span id="game-progress" class="font-mono text-xs text-emerald-400 font-bold">Korak 1/5</span>
+                    <h3 id="game-title-display" class="font-bold text-sm text-slate-100">Naziv Avanture</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="game-step-timer" class="hidden text-xs font-mono font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">⏱️ 00s</span>
+                    <span id="score-display" class="font-mono text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-xl">⭐ 0</span>
+                </div>
+            </div>
+
+            <!-- OPIS ZADATKA I SLIKA -->
+            <div class="space-y-3 bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80">
+                <p id="play-text" class="text-sm font-semibold text-slate-200 leading-relaxed"></p>
+
+                <div id="play-image-container" class="hidden rounded-xl overflow-hidden border border-slate-700">
+                    <img id="play-image" src="" class="w-full object-cover max-h-48">
+                </div>
+
+                <!-- VRSTA ZADATKA 1: GPS & KOMPAS -->
+                <div id="play-location-container" class="hidden space-y-3">
+                    <div id="play-map"></div>
+                    <div class="flex flex-col items-center justify-center p-4 bg-slate-950 rounded-2xl border border-slate-800 text-center space-y-2">
+                        <span class="text-[10px] uppercase font-bold text-slate-400" data-i18n="follow_arrow">Slijedite Kazaljku</span>
+                        
+                        <!-- KOMPAS IGLE -->
+                        <div class="relative w-24 h-24 flex items-center justify-center my-2">
+                            <div id="compass-arrow" class="text-5xl transition-transform duration-200 ease-out transform">⬆️</div>
                         </div>
+
+                        <p id="distance-display" class="font-mono text-2xl font-black text-amber-400">--- m</p>
+                        <p id="gps-accuracy" class="text-[10px] text-slate-500">Preciznost GPS-a: ±-- m</p>
+                        <p id="heading-display" class="text-[10px] text-slate-500">Orijentacija: --°</p>
                     </div>
                 </div>
 
-                <!-- 🎧 AUDIO ZAGONETKA -->
-                <div id="play-audio-container" class="hidden space-y-4">
-                    <div class="p-4 bg-slate-950 rounded-2xl border border-sky-500/30 space-y-3">
-                        <audio id="audio-player" controls class="w-full"></audio>
-                        <input type="text" id="audio-input" placeholder="Upisi sta si cuo..." class="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 text-center">
-                        <button onclick="checkAudioAnswer()" class="w-full bg-sky-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Audio Odgovor</button>
+                <!-- VRSTA ZADATKA 2: DIGITALNI SEF -->
+                <div id="play-safe-container" class="hidden space-y-3">
+                    <input type="text" id="safe-input" readonly placeholder="Unesite Šifru" class="w-full text-center font-mono text-2xl tracking-widest p-3 bg-slate-950 border border-slate-700 rounded-xl text-emerald-400">
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="pressSafe('1')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">1</button>
+                        <button onclick="pressSafe('2')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">2</button>
+                        <button onclick="pressSafe('3')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">3</button>
+                        <button onclick="pressSafe('4')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">4</button>
+                        <button onclick="pressSafe('5')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">5</button>
+                        <button onclick="pressSafe('6')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">6</button>
+                        <button onclick="pressSafe('7')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">7</button>
+                        <button onclick="pressSafe('8')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">8</button>
+                        <button onclick="pressSafe('9')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">9</button>
+                        <button onclick="clearSafe()" class="p-3 bg-red-500/20 text-red-400 font-bold rounded-xl text-sm">❌</button>
+                        <button onclick="pressSafe('0')" class="p-3 bg-slate-700 font-bold rounded-xl text-lg">0</button>
+                        <button onclick="checkSafeCode()" class="p-3 bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">🔓 OK</button>
                     </div>
                 </div>
 
-                <!-- 🏷️ BARKOD ZADATAK -->
+                <!-- VRSTA ZADATKA 3: AUDIO ZAGONETKA -->
+                <div id="play-audio-container" class="hidden space-y-3">
+                    <audio id="audio-player" controls class="w-full"></audio>
+                    <input type="text" id="audio-input" placeholder="Vaš odgovor..." class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    <button onclick="checkAudioAnswer()" class="w-full py-2 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs" data-i18n="submit_answer">Potvrdi Odgovor</button>
+                </div>
+
+                <!-- VRSTA ZADATKA 4: BARKOD / NFC -->
                 <div id="play-barcode-container" class="hidden space-y-3">
-                    <button onclick="startBarcodeScanner()" class="w-full bg-rose-600 hover:bg-rose-500 font-bold py-3.5 rounded-xl flex items-center justify-center space-x-2">
-                        <span>🏷️</span> <span>Skeniraj Barkod na Terenu</span>
-                    </button>
-                    <div id="barcode-reader-container" class="hidden my-2 p-2 bg-slate-950 rounded-xl">
-                        <div id="barcode-reader" class="w-full overflow-hidden rounded-lg"></div>
+                    <button onclick="startBarcodeScanner()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl text-xs">Skeniraj Kod na Terenu 📲</button>
+                    <div id="barcode-reader-container" class="hidden">
+                        <div id="barcode-reader" class="rounded-xl overflow-hidden"></div>
                     </div>
                 </div>
 
+                <!-- VRSTA ZADATKA 5: KVIZ MULTIPLE CHOICE -->
                 <div id="play-mc-container" class="hidden space-y-2"></div>
-                <div id="play-open-container" class="hidden space-y-3">
-                    <input type="text" id="open-input" placeholder="Odgovor..." class="w-full p-3 rounded-xl bg-slate-950 text-center text-lg border border-slate-700">
-                    <button onclick="checkOpenAnswer()" data-i18n="submit_answer" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
+
+                <!-- VRSTA ZADATKA 6: KVIZ OTVORENO PITANJE -->
+                <div id="play-open-container" class="hidden space-y-2">
+                    <input type="text" id="open-input" placeholder="Unesite odgovor..." class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl">
+                    <button onclick="checkOpenAnswer()" class="w-full py-2 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs" data-i18n="submit_answer">Potvrdi Odgovor</button>
                 </div>
 
+                <!-- VRSTA ZADATKA 7: AI ANALIZA SLIKE -->
                 <div id="play-photo-container" class="hidden space-y-3">
-                    <label class="block p-4 bg-slate-950 border-2 border-dashed border-purple-500/50 rounded-xl cursor-pointer hover:border-purple-400">
-                        <span class="text-3xl">📸</span>
-                        <p data-i18n="photo_instruction" class="text-xs text-purple-300 font-bold mt-1">Fotografirajte objekt za AI analizu</p>
+                    <label class="block w-full text-center py-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl text-xs cursor-pointer">
+                        📷 Otvori Kameru / Odaberi Sliku
                         <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" class="hidden">
                     </label>
-                    <div id="ai-status" data-i18n="ai_analyzing" class="hidden p-3 bg-purple-950/50 border border-purple-500/30 rounded-xl text-xs text-purple-300 font-mono">
-                        ⏳ AI model analizira sliku...
+                    
+                    <div id="photo-preview-container" class="hidden space-y-2">
+                        <img id="photo-preview" src="" class="w-full rounded-xl border border-slate-700 max-h-48 object-cover">
+                        <p id="ai-status" class="text-xs text-amber-400 font-bold text-center" data-i18n="ai_analyzing">⏳ AI model analizira sliku...</p>
                     </div>
-                    <div id="photo-preview-container" class="hidden">
-                        <img id="photo-preview" class="w-full max-h-48 object-cover rounded-xl border border-purple-500">
-                    </div>
-                    <button onclick="skipPhotoStep()" data-i18n="skip_step" class="w-full bg-slate-700/60 text-slate-400 py-2.5 rounded-xl text-xs font-bold border border-slate-600">
-                        ⏭️ Preskoči zadatak (0 pt)
-                    </button>
+
+                    <button onclick="skipPhotoStep()" class="w-full py-2 bg-slate-700 text-slate-400 text-xs rounded-xl" data-i18n="skip_step">⏭️ Preskoči zadatak (0 pt)</button>
                 </div>
 
-                <button id="next-btn" onclick="nextStep()" data-i18n="next" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg shadow-lg">Dalje ➡️</button>
+                <!-- SEKTOR ZA POMOĆ / TRAG -->
+                <div id="hint-box" class="hidden p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                    <p id="hint-text-display" class="text-xs text-amber-300"></p>
+                    <button id="buy-hint-btn" onclick="buyHint()" class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-1 rounded border border-amber-500/30 font-bold"></button>
+                </div>
             </div>
-        </div>
+
+            <!-- GUMB ZA SLJEDEĆI KORAK -->
+            <button id="next-btn" onclick="nextStep()" class="hidden w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-2xl shadow-lg" data-i18n="next">Dalje ➡️</button>
+        </section>
 
     </main>
 
-    <!-- DONJA NAVIGACIJSKA TRAKA -->
-    <div class="fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-lg border-t border-slate-700 px-2 py-2 z-50">
-        <div class="max-w-xl mx-auto flex justify-around items-center text-[10px] font-bold text-slate-400">
-            <button onclick="showScreen('home')" class="flex flex-col items-center hover:text-emerald-400">
-                <span class="text-lg">🏠</span> <span data-i18n="nav_home">Početna</span>
-            </button>
-            <button onclick="showScreen('explore')" class="flex flex-col items-center hover:text-emerald-400">
-                <span class="text-lg">🗺️</span> <span data-i18n="nav_explore">Istraži</span>
-            </button>
-            <button onclick="showScreen('multiplayer')" class="flex flex-col items-center hover:text-amber-400">
-                <span class="text-lg">👥</span> <span data-i18n="nav_teams">Timski</span>
-            </button>
-            <button onclick="showScreen('editor')" class="flex flex-col items-center hover:text-emerald-400">
-                <span class="text-lg">➕</span> <span data-i18n="nav_editor">Editor</span>
-            </button>
-            <button onclick="showScreen('leaderboard')" class="flex flex-col items-center hover:text-amber-400">
-                <span class="text-lg">🏆</span> <span data-i18n="nav_leaderboard">Rang</span>
-            </button>
-            <button onclick="showScreen('profile')" class="flex flex-col items-center hover:text-emerald-400">
-                <span class="text-lg">👤</span> <span data-i18n="nav_profile">Profil</span>
-            </button>
+    <!-- MODAL ZA OBJAVLJENU AVANTURU -->
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 p-5 rounded-3xl max-w-xs w-full text-center space-y-4">
+            <h3 class="font-bold text-emerald-400" data-i18n="published_title">🎉 Avantura Objavljena!</h3>
+            <div id="qrcode" class="flex justify-center bg-white p-3 rounded-2xl"></div>
+            <div id="published-id-display"></div>
+            <button onclick="closeQRModal()" class="w-full py-2 bg-slate-800 text-slate-300 font-bold rounded-xl text-xs" data-i18n="close">Zatvori</button>
         </div>
     </div>
 
+    <!-- MODAL ZA INVENTAR -->
+    <div id="inventory-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 p-5 rounded-3xl max-w-xs w-full space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-200">🎒 Moj Inventar</h3>
+                <button onclick="closeInventoryModal()" class="text-slate-400 font-bold">✕</button>
+            </div>
+            <div id="inventory-items-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 px-2 py-2 z-40">
+        <div class="max-w-md mx-auto flex justify-around items-center text-[10px] text-slate-400 font-bold">
+            <button onclick="showScreen('home')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">🏠</span>
+                <span data-i18n="nav_home">Početna</span>
+            </button>
+            <button onclick="showScreen('explore')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">🗺️</span>
+                <span data-i18n="nav_explore">Istraži</span>
+            </button>
+            <button onclick="showScreen('multiplayer')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">👥</span>
+                <span data-i18n="nav_teams">Timski</span>
+            </button>
+            <button onclick="showScreen('editor')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">✏️</span>
+                <span data-i18n="nav_editor">Editor</span>
+            </button>
+            <button onclick="showScreen('leaderboard')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">🏆</span>
+                <span data-i18n="nav_leaderboard">Rang</span>
+            </button>
+            <button onclick="showScreen('profile')" class="flex flex-col items-center space-y-1 hover:text-emerald-400">
+                <span class="text-base">👤</span>
+                <span id="nav-username" data-i18n="nav_profile">Profil</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- APLIKACIJSKA LOGIKA (JAVASCRIPT) -->
     <script>
         // --- PRIJEVODI (i18n) ---
         const translations = {
@@ -976,6 +892,7 @@
             document.getElementById('step-text').value = '';
         }
 
+        /* OBJAVLJIVANJE I GENERIRANJE QR KODA S KOMPLETNIM PODACIMA */
         function publishHunt() {
             const title = document.getElementById('hunt-title').value.trim();
             const theme = document.getElementById('hunt-theme').value;
@@ -983,11 +900,19 @@
 
             const huntId = 'GH-' + Math.floor(1000 + Math.random() * 9000);
             const newHunt = { id: huntId, title, theme, steps: tempSteps };
-            localStorage.setItem(huntId, JSON.stringify(newHunt));
+            
+            const jsonString = JSON.stringify(newHunt);
+            localStorage.setItem(huntId, jsonString);
 
             document.getElementById('qrcode').innerHTML = '';
-            new QRCode(document.getElementById("qrcode"), { text: JSON.stringify(newHunt), width: 160, height: 160 });
-            document.getElementById('published-id-display').innerText = `ID: ${huntId}`;
+            new QRCode(document.getElementById("qrcode"), { text: jsonString, width: 160, height: 160 });
+            
+            document.getElementById('published-id-display').innerHTML = `
+                <div class="text-xs text-slate-400 mb-1">ID: <span class="text-emerald-400 font-bold">${huntId}</span></div>
+                <textarea readonly onclick="this.select()" class="w-full p-2 text-[10px] bg-slate-950 border border-slate-700 rounded text-amber-300 font-mono h-20">${jsonString}</textarea>
+                <p class="text-[10px] text-slate-400 mt-1">Skenirajte QR kod ili kopirajte gornji tekst za igranje!</p>
+            `;
+            
             document.getElementById('qr-modal').classList.remove('hidden');
             tempSteps = [];
             showScreen('home');
@@ -1006,11 +931,12 @@
         }
         function closeInventoryModal() { document.getElementById('inventory-modal').classList.add('hidden'); }
 
+        /* SKENIRANJE QR KODA */
         function startQRScanner() {
             document.getElementById('qr-reader-container').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("qr-reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                document.getElementById('game-id-input').value = text;
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (scannedText) => {
+                document.getElementById('game-id-input').value = scannedText;
                 stopQRScanner();
                 loadGame();
             }, () => {});
@@ -1025,14 +951,31 @@
             }
         }
 
+        /* UČITAVANJE IGRE (IZ LOCALSTORAGE ILI IZ ZALIJEPLJENOG KODA) */
         function loadGame() {
             const input = document.getElementById('game-id-input').value.trim();
-            if(!input) return alert('Unesite ID!');
+            if(!input) return alert('Unesite ID ili zalijepite kod avanture!');
 
-            let data = localStorage.getItem(input);
-            if(!data && input.startsWith('{')) data = input;
-            
-            if(!data) {
+            let data = null;
+
+            // 1. Provjera je li ulazni podatak JSON tekst (kopirani ili skenirani)
+            if (input.startsWith('{') && input.endsWith('}')) {
+                try {
+                    const parsed = JSON.parse(input);
+                    if (parsed.steps && Array.isArray(parsed.steps)) {
+                        data = input;
+                    }
+                } catch(e) {}
+            }
+
+            // 2. Traženje iz localStorage-a uređaja
+            if (!data) {
+                data = localStorage.getItem(input);
+            }
+
+            // 3. Fallback ako podaci nisu nađeni -> Pokreni demo igru
+            if (!data) {
+                alert('Avantura nije pronađena na uređaju. Pokreće se demo igra.');
                 data = JSON.stringify({
                     id: input, title: 'Demo Gusarska Avantura', theme: 'pirate',
                     steps: [
@@ -1353,7 +1296,6 @@
             const targetBearing = getBearing(userLat, userLng, step.lat, step.lng);
             let targetRotation = targetBearing - deviceHeading;
 
-            // Sprječavanje punog kružnog preskakanja rotacije (smooth shortest path angle rotation)
             let diff = (targetRotation - currentVisualAngle) % 360;
             if (diff < -180) diff += 360;
             if (diff > 180) diff -= 360;
@@ -1367,7 +1309,7 @@
         }
 
         function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radius Zemlje u metrima
+            const R = 6371000;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
