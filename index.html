@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoHunt PRO - Ultimate Editor Edition</title>
+    
+    <!-- FAVICON LOGO ZA PREGLEDNIK (TAB) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2310b981'/><stop offset='100%' stop-color='%23059669'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M50 18 C33 18 20 31 20 47 C20 66 50 84 50 84 C50 84 80 66 80 47 C80 31 67 18 50 18 Z' fill='url(%23g)'/><polygon points='50,34 58,52 50,47 42,52' fill='%23ffffff'/><polygon points='50,60 58,52 50,47 42,52' fill='%2394a3b8'/></svg>">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QR Skener i Generator -->
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -28,11 +32,26 @@
 </head>
 <body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between">
 
-    <!-- GORNJA NAVIGACIJA -->
+    <!-- GORNJA NAVIGACIJA S NOVIM LOGOM -->
     <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-40 p-4 border-b border-slate-700 flex justify-between items-center">
-        <h1 class="text-2xl font-black text-emerald-400 cursor-pointer" onclick="showScreen('home')">
-            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">PRO</span>
-        </h1>
+        <!-- MODERAN LOGO I NAZIV -->
+        <div onclick="showScreen('home')" class="flex items-center space-x-2.5 cursor-pointer">
+            <svg width="32" height="32" viewBox="0 0 100 100" class="flex-shrink-0">
+                <defs>
+                    <linearGradient id="gh-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#10b981"/>
+                        <stop offset="100%" stop-color="#059669"/>
+                    </linearGradient>
+                </defs>
+                <rect width="100" height="100" rx="24" fill="#0f172a"/>
+                <path d="M50 18 C33 18 20 31 20 47 C20 66 50 84 50 84 C50 84 80 66 80 47 C80 31 67 18 50 18 Z" fill="url(#gh-grad)"/>
+                <polygon points="50,34 58,52 50,47 42,52" fill="#ffffff"/>
+                <polygon points="50,60 58,52 50,47 42,52" fill="#94a3b8"/>
+            </svg>
+            <span class="text-xl font-black text-white tracking-tight">
+                GEO<span class="text-emerald-400">HUNT</span> <span class="text-xs bg-emerald-500 text-slate-950 px-1.5 py-0.5 rounded font-black align-middle">PRO</span>
+            </span>
+        </div>
         
         <div class="flex items-center space-x-2">
             <!-- GUMB INVENTAR -->
@@ -128,7 +147,7 @@
             </div>
         </div>
 
-        <!-- 4. NIKAD PROŠIRENIJI EDITOR AVANTURA -->
+        <!-- 4. EDITOR AVANTURA -->
         <div id="screen-editor" class="hidden space-y-5 py-2">
             <h2 data-i18n="editor_title" class="text-2xl font-black text-emerald-400">Editor Avanture PRO</h2>
             
@@ -140,7 +159,7 @@
                         <input type="text" id="hunt-title" placeholder="Npr. Tajna Gusarske Rupa" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
                     </div>
                     
-                    <!-- 🎨 ODABIR VIZUALNE TEME RUTE -->
+                    <!-- 🎨 VIZUALNA TEMA RUTE -->
                     <div>
                         <label class="block text-xs font-bold text-purple-400 uppercase mb-1">🎨 Vizualna Tema Rute</label>
                         <select id="hunt-theme" class="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/40 text-white font-semibold">
@@ -263,7 +282,7 @@
 
             <!-- POPIS KORAKA U EDITORU -->
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Dodoani Koraci (<span id="step-count-badge">0</span>):</h4>
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Dodani Koraci (<span id="step-count-badge">0</span>):</h4>
                 <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300"></ul>
             </div>
 
@@ -348,7 +367,7 @@
             </div>
         </div>
 
-        <!-- 7. GAMEPLAY (PODRŽAVA VISUAL THEMES & NOVE ZADATKE) -->
+        <!-- 7. GAMEPLAY -->
         <div id="screen-game" class="hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300">
             <div class="flex justify-between items-center bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/50 backdrop-blur">
                 <span id="game-title-display" class="font-black text-emerald-400"></span>
@@ -875,7 +894,6 @@
             document.getElementById('lobby-teams-list').innerHTML = teams.map(t => `<li class="bg-slate-950 p-2 rounded border border-slate-800">👥 ${t} - Spreman</li>`).join('');
         }
 
-        /* TOGGLE EKRANA EDITOR CAMPA */
         function toggleEditorFields() {
             const type = document.getElementById('step-type').value;
             ['location','safe','audio','barcode','quiz-mc','quiz-open','photo-ai'].forEach(f => document.getElementById(`field-${f}`).classList.add('hidden'));
@@ -948,7 +966,6 @@
 
         function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
 
-        /* 🎒 INVENTAR LOGIKA */
         function openInventoryModal() {
             const list = document.getElementById('inventory-items-list');
             if(userInventory.length === 0) {
@@ -1003,7 +1020,6 @@
             userInventory = [];
             document.getElementById('inventory-count').innerText = "0";
             
-            // PRIMJENA VIZUALNE TEME RUTE
             const gameScreen = document.getElementById('screen-game');
             gameScreen.className = "hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300 theme-" + (currentHunt.theme || 'default');
             
@@ -1022,13 +1038,11 @@
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
             document.getElementById('play-text').innerText = step.text || '';
 
-            // DA LI IMA DODIJELJEN PREDMET (REWARD)?
             if(step.itemReward && !userInventory.includes(step.itemReward)) {
                 userInventory.push(step.itemReward);
                 document.getElementById('inventory-count').innerText = userInventory.length;
             }
 
-            // DA LI IMA POMOĆ (HINT)?
             if(step.hintText) {
                 document.getElementById('hint-box').classList.remove('hidden');
                 document.getElementById('hint-text-display').innerText = "Potrebna vam je pomoć za ovaj zadatak?";
@@ -1036,7 +1050,6 @@
                 document.getElementById('buy-hint-btn').classList.remove('hidden');
             }
 
-            // DA LI IMA TAJMER?
             if(step.timer && step.timer > 0) {
                 let timeLeft = step.timer;
                 const timerDisplay = document.getElementById('game-step-timer');
@@ -1080,7 +1093,6 @@
             else if(step.type === 'info') document.getElementById('next-btn').classList.remove('hidden');
         }
 
-        /* 💡 LOGIKA ZA KUPOVINU HINTA */
         function buyHint() {
             const step = currentHunt.steps[currentStepIndex];
             if(totalScore >= step.hintCost) {
@@ -1093,7 +1105,6 @@
             }
         }
 
-        /* 🔒 SEF INTERFEJS KOD */
         let currentSafeInput = '';
         function pressSafe(num) {
             if(currentSafeInput.length < 6) {
@@ -1115,7 +1126,6 @@
             }
         }
 
-        /* 🎧 AUDIO CHECK */
         function checkAudioAnswer() {
             const step = currentHunt.steps[currentStepIndex];
             const val = document.getElementById('audio-input').value.trim().toLowerCase();
@@ -1127,7 +1137,6 @@
             } else alert('❌ Netočan audio odgovor!');
         }
 
-        /* 🏷️ BARKOD SKENER CHECK */
         function startBarcodeScanner() {
             document.getElementById('barcode-reader-container').classList.remove('hidden');
             const scanner = new Html5Qrcode("barcode-reader");
