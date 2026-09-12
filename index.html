@@ -669,11 +669,13 @@
             }
         }
 
-        /* 🗺️ LEAFLET KARTA BUILDER ZA EDITOR */
+        /* 🗺️ OPTIMIZIRANA BRZA KARTA ZA EDITOR */
         function initEditorMap() {
             editorMap = L.map('editor-map').setView([45.8153, 15.9819], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
+            // Korištenje ultra-brzog CartoDB Voyager cdn-a umjesto sporijeg standardnog OSM-a
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                subdomains: 'abcd'
             }).addTo(editorMap);
 
             editorMap.on('click', function(e) {
@@ -687,16 +689,20 @@
             });
         }
 
-        /* 🗺️ INTERAKTIVNA KARTA ZA PLAYING */
+        /* 🗺️ INTERAKTIVNA KARTA ZA PLAYING - SAKRIVENA KONAČNA LOKACIJA */
         function initPlayMap(lat, lng) {
             if (!playMap) {
                 playMap = L.map('play-map').setView([lat, lng], 17);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(playMap);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(playMap);
             } else {
                 playMap.setView([lat, lng], 17);
             }
-            if (playMarker) playMap.removeLayer(playMarker);
-            playMarker = L.marker([lat, lng]).addTo(playMap).bindPopup("Odredište Zadataka").openPopup();
+            
+            // Uklonjen marker cilja kako se ne bi vidjela točna konačna lokacija
+            if (playMarker) {
+                playMap.removeLayer(playMarker);
+                playMarker = null;
+            }
         }
 
         function fetchWeather() {
@@ -958,7 +964,6 @@
 
             let data = null;
 
-            // 1. Provjera je li ulazni podatak JSON tekst (kopirani ili skenirani)
             if (input.startsWith('{') && input.endsWith('}')) {
                 try {
                     const parsed = JSON.parse(input);
@@ -968,12 +973,10 @@
                 } catch(e) {}
             }
 
-            // 2. Traženje iz localStorage-a uređaja
             if (!data) {
                 data = localStorage.getItem(input);
             }
 
-            // 3. Fallback ako podaci nisu nađeni -> Pokreni demo igru
             if (!data) {
                 alert('Avantura nije pronađena na uređaju. Pokreće se demo igra.');
                 data = JSON.stringify({
@@ -1019,7 +1022,7 @@
                 document.getElementById('hint-box').classList.remove('hidden');
                 document.getElementById('hint-text-display').innerText = "Potrebna vam je pomoć za ovaj zadatak?";
                 document.getElementById('buy-hint-btn').innerText = `💡 Pomoć (-${step.hintCost}pt)`;
-                document.getElementById('buy-hint-btn').classList.remove('hidden');
+                document.getElementById('buy-hint-btn').classList.add('hidden');
             }
 
             if(step.timer && step.timer > 0) {
@@ -1047,7 +1050,8 @@
             if(step.type === 'location') { 
                 document.getElementById('play-location-container').classList.remove('hidden'); 
                 document.getElementById('next-btn').classList.remove('hidden');
-                if(step.lat && step.lng) setTimeout(() => initPlayMap(step.lat, step.lng), 300);
+                // Prikazuje se samo karta s igračevom lokacijom
+                if(userLat && userLng) setTimeout(() => initPlayMap(userLat, userLng), 300);
             }
             else if(step.type === 'safe') { document.getElementById('play-safe-container').classList.remove('hidden'); clearSafe(); }
             else if(step.type === 'audio') { 
