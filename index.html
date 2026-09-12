@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoHunt PRO</title>
+    <title>GeoHunt PRO - Ultimate Editor Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QR Skener i Generator -->
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -11,20 +11,35 @@
     <!-- TensorFlow.js & MobileNet AI Model -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <!-- Leaflet Interaktivne Karte -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .compass-arrow { transition: transform 0.1s linear; display: inline-block; }
         body { padding-bottom: 70px; }
+        #editor-map, #play-map { height: 220px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        
+        /* TEMATSKE BOJE ZA IGRAČKI EKRAN */
+        .theme-pirate { background-color: #2b1d0c !important; color: #fef08a !important; font-family: 'Georgia', serif; }
+        .theme-cyberpunk { background-color: #09090b !important; color: #22d3ee !important; font-family: monospace; }
+        .theme-medieval { background-color: #1c1917 !important; color: #e7e5e4 !important; }
+        .theme-default { background-color: #0f172a; color: #ffffff; }
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between">
 
-    <!-- GORNJA NAVIGACIJA S IZBOROM JEZIKA -->
+    <!-- GORNJA NAVIGACIJA -->
     <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-40 p-4 border-b border-slate-700 flex justify-between items-center">
         <h1 class="text-2xl font-black text-emerald-400 cursor-pointer" onclick="showScreen('home')">
             GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">PRO</span>
         </h1>
         
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2">
+            <!-- GUMB INVENTAR -->
+            <button onclick="openInventoryModal()" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded-lg border border-slate-600 text-xs font-bold flex items-center space-x-1">
+                <span>🎒</span> <span id="inventory-count">0</span>
+            </button>
+
             <!-- ODABIR JEZIKA -->
             <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-700 text-xs text-white border border-slate-600 rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-bold">
                 <option value="hr">🇭🇷 HR</option>
@@ -32,7 +47,7 @@
                 <option value="de">🇩🇪 DE</option>
             </select>
 
-            <div id="nav-user-info" class="text-xs font-bold bg-slate-700/60 px-3 py-1.5 rounded-lg border border-slate-600 flex items-center space-x-2">
+            <div id="nav-user-info" class="text-xs font-bold bg-slate-700/60 px-3 py-1.5 rounded-lg border border-slate-600">
                 <span id="nav-username" data-i18n="unregistered">Neprijavljen</span>
             </div>
         </div>
@@ -113,43 +128,116 @@
             </div>
         </div>
 
-        <!-- 4. EDITOR -->
+        <!-- 4. NIKAD PROŠIRENIJI EDITOR AVANTURA -->
         <div id="screen-editor" class="hidden space-y-5 py-2">
-            <h2 data-i18n="editor_title" class="text-2xl font-black text-emerald-400">Editor Avanture</h2>
+            <h2 data-i18n="editor_title" class="text-2xl font-black text-emerald-400">Editor Avanture PRO</h2>
+            
             <div class="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700">
-                <div>
-                    <label data-i18n="hunt_name" class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
-                    <input type="text" id="hunt-title" placeholder="Npr. Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <!-- OSNOVNE POSTAVKE RUTE -->
+                <div class="space-y-3 pb-3 border-b border-slate-700">
+                    <div>
+                        <label data-i18n="hunt_name" class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
+                        <input type="text" id="hunt-title" placeholder="Npr. Tajna Gusarske Rupa" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
+                    </div>
+                    
+                    <!-- 🎨 ODABIR VIZUALNE TEME RUTE -->
+                    <div>
+                        <label class="block text-xs font-bold text-purple-400 uppercase mb-1">🎨 Vizualna Tema Rute</label>
+                        <select id="hunt-theme" class="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/40 text-white font-semibold">
+                            <option value="default">🌐 Standardna Modern (Tamna)</option>
+                            <option value="pirate">🏴‍☠️ Gusarska Potraga (Topli tonovi)</option>
+                            <option value="cyberpunk">🤖 Cyberpunk / Sci-Fi (Neon Plava)</option>
+                            <option value="medieval">🛡️ Srednjovjekovna Vitezovi (Kameni stil)</option>
+                        </select>
+                    </div>
                 </div>
+
+                <!-- POSTAVKE KORAKA -->
+                <h3 class="font-black text-sm uppercase tracking-wider text-emerald-400">Dodavanje Novi Korak:</h3>
+                
                 <div>
                     <label data-i18n="step_type" class="block text-xs font-semibold text-slate-400 mb-1">Vrsta Koraka</label>
-                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
-                        <option value="location">Tajno Odredište (Kompas + Udaljenost)</option>
-                        <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
-                        <option value="quiz-open">Pitanje otvorenog tipa</option>
-                        <option value="photo">Foto Zadatak (Slikanje + AI Provjera)</option>
-                        <option value="info">Info Slajd (Samo slika/tekst)</option>
+                    <select id="step-type" onchange="toggleEditorFields()" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold">
+                        <option value="location">📍 GPS Odredište (Kompas + Karta)</option>
+                        <option value="safe">🔒 Digitalni Sef (Unos Brojne Šifre)</option>
+                        <option value="quiz-mc">❓ Pitanje s ponuđenim odgovorima</option>
+                        <option value="quiz-open">✏️ Pitanje otvorenog tipa</option>
+                        <option value="photo">📸 Foto Zadatak (Slikanje + AI Provjera)</option>
+                        <option value="audio">🎧 Audio Zagonetka (Sluh + Zvuk)</option>
+                        <option value="barcode">🏷️ NFC / Barkod Skeniranje</option>
+                        <option value="info">ℹ️ Info Slajd / Trag</option>
                     </select>
                 </div>
+
                 <div>
                     <label data-i18n="step_text" class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa</label>
-                    <textarea id="step-text" placeholder="Unesite tekst..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
+                    <textarea id="step-text" placeholder="Unesite tekst ili trag zadatka..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">URL Slike (Neobavezno)</label>
-                    <input type="text" id="step-image" placeholder="https://primjer.com/slika.jpg" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">URL Slike (Neobavezno)</label>
+                        <input type="text" id="step-image" placeholder="https://..." class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs">
+                    </div>
+                    <!-- ⏱️ VREMENSKO OGRANIČENJE -->
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-400 mb-1">⏱️ Vrijeme (Sekundi, 0=Bez)</label>
+                        <input type="number" id="step-timer" value="0" min="0" class="w-full p-2.5 rounded-xl bg-slate-950 border border-amber-500/30 text-xs text-center font-bold">
+                    </div>
                 </div>
+
+                <!-- 💡 TRAG / POMOĆ (HINT) -->
+                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <label class="block text-xs font-bold text-sky-400 uppercase">💡 Trag / Pomoć (Hitni nagovještaj)</label>
+                    <input type="text" id="step-hint-text" placeholder="Npr. Potražite iza hrastovog drveta" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] text-slate-400">Cijena u bodovima za trag:</span>
+                        <input type="number" id="step-hint-cost" value="5" min="0" class="w-20 p-1 rounded bg-slate-900 border border-slate-700 text-xs text-center font-bold text-amber-400">
+                    </div>
+                </div>
+
+                <!-- 🎁 SAKUPLJAČKI PREDMET (COLLECTIBLE) -->
+                <div class="bg-amber-500/5 p-3 rounded-xl border border-amber-500/20">
+                    <label class="block text-xs font-bold text-amber-400 uppercase mb-1">🎁 Nagradni Predmet za Inventar (Neobavezno)</label>
+                    <input type="text" id="step-item-reward" placeholder="Npr. Zlatni Ključ ili Karta Zamka" class="w-full p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
+                </div>
+
                 <div id="field-points" class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl">
                     <label data-i18n="step_pts" class="block text-xs font-bold text-amber-400 uppercase mb-1">⭐ Bodovi za ovaj korak</label>
                     <input type="number" id="step-points" value="10" min="0" class="w-full p-2 rounded-lg bg-slate-950 text-white text-center font-bold">
                 </div>
+
+                <!-- DYNAMIC FIELDS -->
+                <!-- 🗺️ INTERAKTIVNA KARTA BUILDER -->
                 <div id="field-location" class="space-y-2 border-l-2 border-emerald-500 pl-3">
-                    <p data-i18n="target_coords" class="text-xs text-emerald-400">Koordinate cilja:</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" step="any" id="step-lat" placeholder="Geog. širina (npr. 45.815)" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
-                        <input type="number" step="any" id="step-lng" placeholder="Geog. duljina (npr. 15.981)" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
+                    <p class="text-xs text-emerald-400 font-bold">📍 Odaberite točku na karti ili kliknite za koordinate:</p>
+                    <div id="editor-map"></div>
+                    <div class="grid grid-cols-3 gap-2 pt-1">
+                        <input type="number" step="any" id="step-lat" placeholder="Geog. širina" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
+                        <input type="number" step="any" id="step-lng" placeholder="Geog. duljina" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs">
+                        <input type="number" id="step-radius" value="20" placeholder="Radijus (m)" class="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-center" title="Dopušteno odstupanje u metrima">
                     </div>
                 </div>
+
+                <!-- 🔒 DIGITALNI SEF -->
+                <div id="field-safe" class="hidden space-y-2 border-l-2 border-amber-500 pl-3">
+                    <label class="block text-xs font-bold text-amber-400">Brojna Šifra za Otvaranje Sefa (npr. 4729)</label>
+                    <input type="text" id="safe-code" placeholder="Npr. 1234" class="w-full p-2.5 rounded-lg bg-slate-950 font-mono text-center text-lg border border-amber-500/40 tracking-widest">
+                </div>
+
+                <!-- 🎧 AUDIO ZAGONETKA -->
+                <div id="field-audio" class="hidden space-y-2 border-l-2 border-sky-500 pl-3">
+                    <label class="block text-xs font-bold text-sky-400">URL Audio Datoteke (MP3 / WAV)</label>
+                    <input type="text" id="audio-url" placeholder="https://primjer.com/zvuk.mp3" class="w-full p-2 rounded-lg bg-slate-950 text-xs">
+                    <input type="text" id="audio-answer" placeholder="Točno rješenje zvuka" class="w-full p-2 rounded-lg bg-slate-950 text-xs">
+                </div>
+
+                <!-- 🏷️ NAKOD / BARKOD -->
+                <div id="field-barcode" class="hidden space-y-2 border-l-2 border-rose-500 pl-3">
+                    <label class="block text-xs font-bold text-rose-400">Točan Barkod / Kod s terena</label>
+                    <input type="text" id="barcode-target" placeholder="Upišite točan kod za usporedbu" class="w-full p-2 rounded-lg bg-slate-950 text-xs font-mono">
+                </div>
+
                 <div id="field-quiz-mc" class="hidden space-y-2 border-l-2 border-emerald-500 pl-3">
                     <input type="text" id="mc-1" placeholder="Opcija A" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
                     <input type="text" id="mc-2" placeholder="Opcija B" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
@@ -160,19 +248,26 @@
                         <option value="2">Točan odgovor: Opcija C</option>
                     </select>
                 </div>
+
                 <div id="field-quiz-open" class="hidden border-l-2 border-emerald-500 pl-3">
                     <input type="text" id="open-answer" placeholder="Točna riječ/odgovor" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
                 </div>
+
                 <div id="field-photo-ai" class="hidden border-l-2 border-purple-500 pl-3 space-y-2">
                     <label data-i18n="ai_word" class="block text-xs font-bold text-purple-400 uppercase">AI Riječ za Prepoznavanje (Engleski)</label>
                     <input type="text" id="ai-target" placeholder="npr. dog, cat, car, tree" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
                 </div>
-                <button onclick="addStep()" data-i18n="btn_add_step" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-xl">+ Dodaj Korak</button>
+
+                <button onclick="addStep()" data-i18n="btn_add_step" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl border border-slate-500">+ Dodaj Korak u Rutu</button>
             </div>
+
+            <!-- POPIS KORAKA U EDITORU -->
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Dodoani Koraci (<span id="step-count-badge">0</span>):</h4>
                 <ul id="editor-steps-list" class="space-y-2 text-sm text-slate-300"></ul>
             </div>
-            <button onclick="publishHunt()" data-i18n="btn_publish" class="w-full bg-emerald-500 text-slate-950 font-black py-4 rounded-2xl text-lg">Objavi Avanturu 🎯</button>
+
+            <button onclick="publishHunt()" data-i18n="btn_publish" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-2xl text-lg shadow-lg">Objavi Avanturu 🎯</button>
         </div>
 
         <!-- 5. LEADERBOARD -->
@@ -232,6 +327,17 @@
             </div>
         </div>
 
+        <!-- MODAL ZA INVENTAR -->
+        <div id="inventory-modal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
+                <h3 class="text-xl font-black text-amber-400 flex items-center justify-center space-x-2">
+                    <span>🎒</span> <span>Vaš Inventar</span>
+                </h3>
+                <div id="inventory-items-list" class="space-y-2 text-left max-h-60 overflow-y-auto"></div>
+                <button onclick="closeInventoryModal()" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-xl">Zatvori</button>
+            </div>
+        </div>
+
         <!-- MODAL ZA QR -->
         <div id="qr-modal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
             <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
@@ -242,33 +348,82 @@
             </div>
         </div>
 
-        <!-- 7. GAMEPLAY -->
-        <div id="screen-game" class="hidden space-y-5 my-auto">
-            <div class="flex justify-between items-center bg-slate-800 p-3.5 rounded-2xl border border-slate-700">
+        <!-- 7. GAMEPLAY (PODRŽAVA VISUAL THEMES & NOVE ZADATKE) -->
+        <div id="screen-game" class="hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300">
+            <div class="flex justify-between items-center bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/50 backdrop-blur">
                 <span id="game-title-display" class="font-black text-emerald-400"></span>
-                <div class="flex space-x-2">
+                <div class="flex items-center space-x-2">
+                    <!-- TAJMER -->
+                    <span id="game-step-timer" class="hidden text-xs bg-red-500/20 text-red-400 font-mono font-black px-2.5 py-1 rounded-full border border-red-500/30">⏱️ 0s</span>
                     <span id="score-display" class="text-xs bg-amber-500/20 text-amber-400 font-black px-2.5 py-1 rounded-full">⭐ 0</span>
                     <span id="game-progress" class="text-xs bg-slate-700 px-2.5 py-1 rounded-full font-mono">1/1</span>
                 </div>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-4">
+            <!-- GUMB ZA POMOĆ / TRAG -->
+            <div id="hint-box" class="hidden bg-sky-950/50 border border-sky-500/30 p-3 rounded-2xl flex justify-between items-center text-xs">
+                <span id="hint-text-display" class="text-sky-200">Potrebna pomoć?</span>
+                <button onclick="buyHint()" id="buy-hint-btn" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-3 py-1.5 rounded-xl">💡 Pomoć (-5pt)</button>
+            </div>
+
+            <div class="bg-slate-800/90 backdrop-blur p-6 rounded-2xl border border-slate-700/70 text-center space-y-4">
                 <div id="play-image-container" class="hidden my-2">
                     <img id="play-image" src="" class="w-full max-h-60 object-cover rounded-xl border border-slate-700 shadow-md">
                 </div>
                 <p id="play-text" class="text-lg font-bold text-slate-100"></p>
 
-                <!-- KOMPAS -->
-                <div id="play-location-container" class="hidden space-y-4">
-                    <div class="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                <!-- 📍 KOMPAS I KARTA -->
+                <div id="play-location-container" class="hidden space-y-3">
+                    <div id="play-map" class="mb-2"></div>
+                    <div class="flex flex-col items-center justify-center p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
                         <span data-i18n="follow_arrow" class="text-xs font-bold text-slate-400 uppercase">Slijedite Kazaljku</span>
-                        <div class="relative w-32 h-32 flex items-center justify-center bg-slate-900 rounded-full border-2 border-emerald-500/30">
-                            <div id="compass-arrow" class="compass-arrow text-6xl">🎯</div>
+                        <div class="relative w-28 h-28 flex items-center justify-center bg-slate-900 rounded-full border-2 border-emerald-500/30">
+                            <div id="compass-arrow" class="compass-arrow text-5xl">🎯</div>
                         </div>
                         <div class="bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 rounded-xl">
-                            <span id="distance-display" class="text-2xl font-black font-mono text-emerald-400">--- m</span>
+                            <span id="distance-display" class="text-xl font-black font-mono text-emerald-400">--- m</span>
                         </div>
-                        <button onclick="enableSensors()" data-i18n="activate_compass" class="text-xs text-amber-400 underline pt-2">Aktiviraj Kompas Senzor</button>
+                    </div>
+                </div>
+
+                <!-- 🔒 SEF INTERFEJS -->
+                <div id="play-safe-container" class="hidden space-y-4">
+                    <div class="p-6 bg-slate-950 rounded-2xl border-2 border-amber-500/40 space-y-4">
+                        <span class="text-4xl">🔐</span>
+                        <input type="text" id="safe-input" readonly placeholder="----" class="w-full text-center text-3xl font-mono font-black tracking-widest p-3 bg-slate-900 border border-amber-500 rounded-xl text-amber-400">
+                        <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+                            <button onclick="pressSafe('1')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">1</button>
+                            <button onclick="pressSafe('2')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">2</button>
+                            <button onclick="pressSafe('3')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">3</button>
+                            <button onclick="pressSafe('4')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">4</button>
+                            <button onclick="pressSafe('5')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">5</button>
+                            <button onclick="pressSafe('6')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">6</button>
+                            <button onclick="pressSafe('7')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">7</button>
+                            <button onclick="pressSafe('8')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">8</button>
+                            <button onclick="pressSafe('9')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">9</button>
+                            <button onclick="clearSafe()" class="p-3 bg-red-500/20 text-red-400 rounded-xl font-bold">C</button>
+                            <button onclick="pressSafe('0')" class="p-3 bg-slate-800 rounded-xl font-mono text-xl font-bold">0</button>
+                            <button onclick="checkSafeCode()" class="p-3 bg-amber-500 text-slate-950 rounded-xl font-bold">OK</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🎧 AUDIO ZAGONETKA -->
+                <div id="play-audio-container" class="hidden space-y-4">
+                    <div class="p-4 bg-slate-950 rounded-2xl border border-sky-500/30 space-y-3">
+                        <audio id="audio-player" controls class="w-full"></audio>
+                        <input type="text" id="audio-input" placeholder="Upisi sta si cuo..." class="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 text-center">
+                        <button onclick="checkAudioAnswer()" class="w-full bg-sky-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Audio Odgovor</button>
+                    </div>
+                </div>
+
+                <!-- 🏷️ BARKOD ZADATAK -->
+                <div id="play-barcode-container" class="hidden space-y-3">
+                    <button onclick="startBarcodeScanner()" class="w-full bg-rose-600 hover:bg-rose-500 font-bold py-3.5 rounded-xl flex items-center justify-center space-x-2">
+                        <span>🏷️</span> <span>Skeniraj Barkod na Terenu</span>
+                    </button>
+                    <div id="barcode-reader-container" class="hidden my-2 p-2 bg-slate-950 rounded-xl">
+                        <div id="barcode-reader" class="w-full overflow-hidden rounded-lg"></div>
                     </div>
                 </div>
 
@@ -295,7 +450,7 @@
                     </button>
                 </div>
 
-                <button id="next-btn" onclick="nextStep()" data-i18n="next" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Dalje ➡️</button>
+                <button id="next-btn" onclick="nextStep()" data-i18n="next" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg shadow-lg">Dalje ➡️</button>
             </div>
         </div>
 
@@ -346,14 +501,14 @@
                 room_active: "SOBA AKTIVNA",
                 share_code: "Podijelite ovaj kod timovima za prijavu.",
                 registered_teams: "Prijavljeni Timovi:",
-                editor_title: "Editor Avanture",
+                editor_title: "Editor Avanture PRO",
                 hunt_name: "Naziv Avanture",
                 step_type: "Vrsta Koraka",
                 step_text: "Tekst / Pitanje / Uputa",
                 step_pts: "⭐ Bodovi za ovaj korak",
                 target_coords: "Koordinate cilja:",
                 ai_word: "AI Riječ za Prepoznavanje (Engleski)",
-                btn_add_step: "+ Dodaj Korak",
+                btn_add_step: "+ Dodaj Korak u Rutu",
                 btn_publish: "Objavi Avanturu 🎯",
                 leaderboard_sub: "Najbolji igrači s najviše ostvarenih bodova:",
                 auth_login: "Prijava",
@@ -398,7 +553,7 @@
                 room_active: "ROOM ACTIVE",
                 share_code: "Share this code with teams to join.",
                 registered_teams: "Registered Teams:",
-                editor_title: "Adventure Editor",
+                editor_title: "Adventure Editor PRO",
                 hunt_name: "Adventure Title",
                 step_type: "Step Type",
                 step_text: "Text / Question / Clue",
@@ -450,7 +605,7 @@
                 room_active: "RAUM AKTIV",
                 share_code: "Teile diesen Code mit den Teams zum Beitreten.",
                 registered_teams: "Registrierte Teams:",
-                editor_title: "Abenteuer-Editor",
+                editor_title: "Abenteuer-Editor PRO",
                 hunt_name: "Name des Abenteuers",
                 step_type: "Schritt-Typ",
                 step_text: "Text / Frage / Hinweis",
@@ -459,7 +614,7 @@
                 ai_word: "KI-Zielwort (Englisch)",
                 btn_add_step: "+ Schritt hinzufügen",
                 btn_publish: "Veröffentlichen 🎯",
-                leaderboard_sub: "Die besten Spieler mit den meisten Punkten:",
+                leaderboard_sub: "Die besten Spieler mit den meisen Punkten:",
                 auth_login: "Anmelden",
                 auth_signup: "Registrieren",
                 username: "Benutzername",
@@ -489,7 +644,7 @@
         let currentLang = 'hr';
         let currentUser = null;
         let authMode = 'login';
-        let currentHunt = { id: '', title: '', steps: [] };
+        let currentHunt = { id: '', title: '', theme: 'default', steps: [] };
         let tempSteps = [];
         let currentStepIndex = 0;
         let totalScore = 0;
@@ -497,6 +652,10 @@
         let deviceHeading = 0;
         let html5QrCode = null;
         let aiModel = null;
+        let editorMap = null, playMap = null;
+        let editorMarker = null, playMarker = null;
+        let stepTimerInterval = null;
+        let userInventory = [];
 
         const exploreHunts = [
             { id: 'GH-101', title: 'Starogradska Potraga', stepsCount: 4, dist: '1.2 km' },
@@ -540,6 +699,40 @@
             });
             document.getElementById(`screen-${screen}`).classList.remove('hidden');
             stopQRScanner();
+
+            if (screen === 'editor' && !editorMap) {
+                setTimeout(initEditorMap, 200);
+            }
+        }
+
+        /* 🗺️ LEAFLET KARTA BUILDER ZA EDITOR */
+        function initEditorMap() {
+            editorMap = L.map('editor-map').setView([45.8153, 15.9819], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(editorMap);
+
+            editorMap.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                document.getElementById('step-lat').value = lat.toFixed(6);
+                document.getElementById('step-lng').value = lng.toFixed(6);
+
+                if (editorMarker) editorMap.removeLayer(editorMarker);
+                editorMarker = L.marker([lat, lng]).addTo(editorMap);
+            });
+        }
+
+        /* 🗺️ INTERAKTIVNA KARTA ZA PLAYING */
+        function initPlayMap(lat, lng) {
+            if (!playMap) {
+                playMap = L.map('play-map').setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(playMap);
+            } else {
+                playMap.setView([lat, lng], 15);
+            }
+            if (playMarker) playMap.removeLayer(playMarker);
+            playMarker = L.marker([lat, lng]).addTo(playMap).bindPopup("Odredište Zadataka").openPopup();
         }
 
         function fetchWeather() {
@@ -682,11 +875,16 @@
             document.getElementById('lobby-teams-list').innerHTML = teams.map(t => `<li class="bg-slate-950 p-2 rounded border border-slate-800">👥 ${t} - Spreman</li>`).join('');
         }
 
+        /* TOGGLE EKRANA EDITOR CAMPA */
         function toggleEditorFields() {
             const type = document.getElementById('step-type').value;
-            ['location','quiz-mc','quiz-open','photo-ai'].forEach(f => document.getElementById(`field-${f}`).classList.add('hidden'));
+            ['location','safe','audio','barcode','quiz-mc','quiz-open','photo-ai'].forEach(f => document.getElementById(`field-${f}`).classList.add('hidden'));
             document.getElementById('field-points').classList.remove('hidden');
+            
             if (type === 'location') document.getElementById('field-location').classList.remove('hidden');
+            if (type === 'safe') document.getElementById('field-safe').classList.remove('hidden');
+            if (type === 'audio') document.getElementById('field-audio').classList.remove('hidden');
+            if (type === 'barcode') document.getElementById('field-barcode').classList.remove('hidden');
             if (type === 'quiz-mc') document.getElementById('field-quiz-mc').classList.remove('hidden');
             if (type === 'quiz-open') document.getElementById('field-quiz-open').classList.remove('hidden');
             if (type === 'photo') document.getElementById('field-photo-ai').classList.remove('hidden');
@@ -697,12 +895,25 @@
             const type = document.getElementById('step-type').value;
             const text = document.getElementById('step-text').value.trim();
             const image = document.getElementById('step-image').value.trim();
+            const timer = parseInt(document.getElementById('step-timer').value) || 0;
+            const hintText = document.getElementById('step-hint-text').value.trim();
+            const hintCost = parseInt(document.getElementById('step-hint-cost').value) || 0;
+            const itemReward = document.getElementById('step-item-reward').value.trim();
             const points = type === 'info' ? 0 : (parseInt(document.getElementById('step-points').value) || 0);
 
-            let step = { type, text, image, points };
+            let step = { type, text, image, points, timer, hintText, hintCost, itemReward };
+            
             if (type === 'location') {
                 step.lat = parseFloat(document.getElementById('step-lat').value);
                 step.lng = parseFloat(document.getElementById('step-lng').value);
+                step.radius = parseInt(document.getElementById('step-radius').value) || 20;
+            } else if (type === 'safe') {
+                step.safeCode = document.getElementById('safe-code').value.trim();
+            } else if (type === 'audio') {
+                step.audioUrl = document.getElementById('audio-url').value.trim();
+                step.answer = document.getElementById('audio-answer').value.trim().toLowerCase();
+            } else if (type === 'barcode') {
+                step.barcodeTarget = document.getElementById('barcode-target').value.trim();
             } else if (type === 'quiz-mc') {
                 step.options = [document.getElementById('mc-1').value, document.getElementById('mc-2').value, document.getElementById('mc-3').value];
                 step.correct = parseInt(document.getElementById('mc-correct').value);
@@ -713,16 +924,18 @@
             }
 
             tempSteps.push(step);
-            document.getElementById('editor-steps-list').innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text || 'Zadatak'} (+${s.points} pt)</li>`).join('');
+            document.getElementById('step-count-badge').innerText = tempSteps.length;
+            document.getElementById('editor-steps-list').innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded flex justify-between"><span>${i+1}. [${s.type.toUpperCase()}] ${s.text || 'Zadatak'}</span> <span class="text-amber-400 font-bold">+${s.points} pt</span></li>`).join('');
             document.getElementById('step-text').value = '';
         }
 
         function publishHunt() {
             const title = document.getElementById('hunt-title').value.trim();
-            if(!title || tempSteps.length === 0) return alert('Popunite naziv i dodajte korake!');
+            const theme = document.getElementById('hunt-theme').value;
+            if(!title || tempSteps.length === 0) return alert('Popunite naziv i dodajte barem 1 korak!');
 
             const huntId = 'GH-' + Math.floor(1000 + Math.random() * 9000);
-            const newHunt = { id: huntId, title, steps: tempSteps };
+            const newHunt = { id: huntId, title, theme, steps: tempSteps };
             localStorage.setItem(huntId, JSON.stringify(newHunt));
 
             document.getElementById('qrcode').innerHTML = '';
@@ -734,6 +947,18 @@
         }
 
         function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
+
+        /* 🎒 INVENTAR LOGIKA */
+        function openInventoryModal() {
+            const list = document.getElementById('inventory-items-list');
+            if(userInventory.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Vaš inventar je prazan. Sakupljajte predmete na koracima rute!</p>`;
+            } else {
+                list.innerHTML = userInventory.map(item => `<div class="p-2 bg-slate-950 rounded-xl border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center space-x-2"><span>🎁</span> <span>${item}</span></div>`).join('');
+            }
+            document.getElementById('inventory-modal').classList.remove('hidden');
+        }
+        function closeInventoryModal() { document.getElementById('inventory-modal').classList.add('hidden'); }
 
         function startQRScanner() {
             document.getElementById('qr-reader-container').classList.remove('hidden');
@@ -763,9 +988,10 @@
             
             if(!data) {
                 data = JSON.stringify({
-                    id: input, title: 'Demo Avantura',
+                    id: input, title: 'Demo Gusarska Avantura', theme: 'pirate',
                     steps: [
-                        { type: 'info', text: 'Dobrodošli u demo avanturu!' },
+                        { type: 'info', text: 'Dobrodošli u tajnu piratsku rutu!', itemReward: 'Starinska Karta' },
+                        { type: 'safe', text: 'Otvorite brodski sef! Unesite šifru 1234', safeCode: '1234', points: 30, timer: 45, hintText: 'Šifra je 1234', hintCost: 5 },
                         { type: 'quiz-open', text: 'Koji je glavni grad Hrvatske?', answer: 'zagreb', points: 20 }
                     ]
                 });
@@ -774,6 +1000,13 @@
             currentHunt = JSON.parse(data);
             currentStepIndex = 0;
             totalScore = 0;
+            userInventory = [];
+            document.getElementById('inventory-count').innerText = "0";
+            
+            // PRIMJENA VIZUALNE TEME RUTE
+            const gameScreen = document.getElementById('screen-game');
+            gameScreen.className = "hidden space-y-5 my-auto p-4 rounded-3xl transition-all duration-300 theme-" + (currentHunt.theme || 'default');
+            
             document.getElementById('game-title-display').innerText = currentHunt.title;
             document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
             showScreen('game');
@@ -782,26 +1015,135 @@
         }
 
         function renderStep() {
+            clearInterval(stepTimerInterval);
             const step = currentHunt.steps[currentStepIndex];
-            ['play-image-container','play-location-container','play-mc-container','play-open-container','play-photo-container','next-btn','ai-status','photo-preview-container'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['play-image-container','play-location-container','play-safe-container','play-audio-container','play-barcode-container','play-mc-container','play-open-container','play-photo-container','next-btn','ai-status','photo-preview-container','hint-box','game-step-timer'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
             document.getElementById('play-text').innerText = step.text || '';
+
+            // DA LI IMA DODIJELJEN PREDMET (REWARD)?
+            if(step.itemReward && !userInventory.includes(step.itemReward)) {
+                userInventory.push(step.itemReward);
+                document.getElementById('inventory-count').innerText = userInventory.length;
+            }
+
+            // DA LI IMA POMOĆ (HINT)?
+            if(step.hintText) {
+                document.getElementById('hint-box').classList.remove('hidden');
+                document.getElementById('hint-text-display').innerText = "Potrebna vam je pomoć za ovaj zadatak?";
+                document.getElementById('buy-hint-btn').innerText = `💡 Pomoć (-${step.hintCost}pt)`;
+                document.getElementById('buy-hint-btn').classList.remove('hidden');
+            }
+
+            // DA LI IMA TAJMER?
+            if(step.timer && step.timer > 0) {
+                let timeLeft = step.timer;
+                const timerDisplay = document.getElementById('game-step-timer');
+                timerDisplay.classList.remove('hidden');
+                timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+
+                stepTimerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+                    if(timeLeft <= 0) {
+                        clearInterval(stepTimerInterval);
+                        alert('⏳ Vrijeme je isteklo za ovaj zadatak!');
+                        nextStep();
+                    }
+                }, 1000);
+            }
 
             if (step.image) {
                 document.getElementById('play-image').src = step.image;
                 document.getElementById('play-image-container').classList.remove('hidden');
             }
 
-            if(step.type === 'location') { document.getElementById('play-location-container').classList.remove('hidden'); document.getElementById('next-btn').classList.remove('hidden'); }
+            if(step.type === 'location') { 
+                document.getElementById('play-location-container').classList.remove('hidden'); 
+                document.getElementById('next-btn').classList.remove('hidden');
+                if(step.lat && step.lng) setTimeout(() => initPlayMap(step.lat, step.lng), 300);
+            }
+            else if(step.type === 'safe') { document.getElementById('play-safe-container').classList.remove('hidden'); clearSafe(); }
+            else if(step.type === 'audio') { 
+                document.getElementById('play-audio-container').classList.remove('hidden'); 
+                document.getElementById('audio-player').src = step.audioUrl || '';
+            }
+            else if(step.type === 'barcode') { document.getElementById('play-barcode-container').classList.remove('hidden'); }
             else if(step.type === 'quiz-mc') {
                 const c = document.getElementById('play-mc-container');
                 c.classList.remove('hidden');
-                c.innerHTML = step.options.map((o, i) => `<button onclick="checkMC(${i})" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-xl font-bold">${o}</button>`).join('');
+                c.innerHTML = step.options.map((o, i) => `<button onclick="checkMC(${i})" class="w-full p-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-xl font-bold text-white">${o}</button>`).join('');
             }
             else if(step.type === 'quiz-open') document.getElementById('play-open-container').classList.remove('hidden');
             else if(step.type === 'photo') document.getElementById('play-photo-container').classList.remove('hidden');
             else if(step.type === 'info') document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        /* 💡 LOGIKA ZA KUPOVINU HINTA */
+        function buyHint() {
+            const step = currentHunt.steps[currentStepIndex];
+            if(totalScore >= step.hintCost) {
+                totalScore -= step.hintCost;
+                document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+                document.getElementById('hint-text-display').innerText = `💡 TRAG: ${step.hintText}`;
+                document.getElementById('buy-hint-btn').classList.add('hidden');
+            } else {
+                alert('Nemate dovoljno bodova za trag!');
+            }
+        }
+
+        /* 🔒 SEF INTERFEJS KOD */
+        let currentSafeInput = '';
+        function pressSafe(num) {
+            if(currentSafeInput.length < 6) {
+                currentSafeInput += num;
+                document.getElementById('safe-input').value = currentSafeInput;
+            }
+        }
+        function clearSafe() { currentSafeInput = ''; document.getElementById('safe-input').value = ''; }
+        function checkSafeCode() {
+            const step = currentHunt.steps[currentStepIndex];
+            if(currentSafeInput === step.safeCode) {
+                addScore(step.points);
+                alert(`🔓 SEF OTVOREN! +${step.points} pt`);
+                document.getElementById('play-safe-container').classList.add('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else {
+                alert('❌ Pogrešna šifra sefa!');
+                clearSafe();
+            }
+        }
+
+        /* 🎧 AUDIO CHECK */
+        function checkAudioAnswer() {
+            const step = currentHunt.steps[currentStepIndex];
+            const val = document.getElementById('audio-input').value.trim().toLowerCase();
+            if(val === step.answer) {
+                addScore(step.points);
+                alert(`🎯 Točno! +${step.points} pt`);
+                document.getElementById('play-audio-container').classList.add('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else alert('❌ Netočan audio odgovor!');
+        }
+
+        /* 🏷️ BARKOD SKENER CHECK */
+        function startBarcodeScanner() {
+            document.getElementById('barcode-reader-container').classList.remove('hidden');
+            const scanner = new Html5Qrcode("barcode-reader");
+            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                scanner.stop();
+                document.getElementById('barcode-reader-container').classList.add('hidden');
+                const step = currentHunt.steps[currentStepIndex];
+                if(text === step.barcodeTarget) {
+                    addScore(step.points);
+                    alert(`🎉 Barkod Prihvaćen! +${step.points} pt`);
+                    document.getElementById('play-barcode-container').classList.add('hidden');
+                    document.getElementById('next-btn').classList.remove('hidden');
+                } else {
+                    alert('❌ Skenirani kod se ne podudara!');
+                }
+            }, () => {});
         }
 
         function skipPhotoStep() { nextStep(); }
@@ -869,10 +1211,11 @@
         }
 
         function nextStep() {
+            clearInterval(stepTimerInterval);
             currentStepIndex++;
             if(currentStepIndex < currentHunt.steps.length) renderStep();
             else {
-                alert(`🏆 ${totalScore} pt!`);
+                alert(`🏆 ČESTITAMO! Završili ste avanturu s ostvarenih ${totalScore} bodova!`);
                 if(currentUser) {
                     let users = JSON.parse(localStorage.getItem('gh_users') || '{}');
                     if(users[currentUser.username]) {
@@ -897,14 +1240,6 @@
                 }, null, { enableHighAccuracy: true });
             }
             window.addEventListener('deviceorientation', handleOrientation, true);
-        }
-
-        function enableSensors() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(r => {
-                    if (r === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
-                });
-            }
         }
 
         function handleOrientation(e) {
