@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoHunt PRO</title>
+    <title>GeoHunt PRO + AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Biblioteka za QR Skener -->
+    <!-- QR Skener i Generator -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Biblioteka za Generiranje QR Koda -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- TensorFlow.js & MobileNet AI Model za prepoznavanje slika -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <style>
         .compass-arrow {
             transition: transform 0.1s linear;
@@ -20,7 +22,7 @@
 
     <nav class="bg-slate-800/80 backdrop-blur-md sticky top-0 z-50 p-4 border-b border-slate-700 flex justify-between items-center">
         <h1 class="text-2xl font-black text-emerald-400 cursor-pointer" onclick="showScreen('home')">
-            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">PRO</span>
+            GeoHunt <span class="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded">AI PRO</span>
         </h1>
         <div class="flex space-x-2">
             <button onclick="showScreen('home')" class="px-3 py-1.5 bg-slate-700 rounded-lg text-sm font-semibold">Početna</button>
@@ -33,7 +35,7 @@
         <!-- 1. POČETNI EKRAN -->
         <div id="screen-home" class="space-y-6 text-center py-6 my-auto">
             <div class="space-y-2">
-                <span class="text-5xl">🧭</span>
+                <span class="text-5xl">🤖🧭</span>
                 <h2 class="text-3xl font-black">GeoHunt PRO</h2>
                 <p class="text-slate-400 text-sm">Skenirajte QR kod ili unesite kod avanture!</p>
             </div>
@@ -68,7 +70,7 @@
             <div class="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Naziv Avanture</label>
-                    <input type="text" id="hunt-title" placeholder="Npr. Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                    <input type="text" id="hunt-title" placeholder="Npr. AI Potraga za Blagom" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white">
                 </div>
 
                 <div>
@@ -77,7 +79,7 @@
                         <option value="location">Tajno Odredište (Kompas + Udaljenost)</option>
                         <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
                         <option value="quiz-open">Pitanje otvorenog tipa</option>
-                        <option value="photo">Foto Zadatak (Slikanje kamerom)</option>
+                        <option value="photo">Foto Zadatak (Slikanje + AI Provjera)</option>
                         <option value="info">Info Slajd (Samo slika/tekst)</option>
                     </select>
                 </div>
@@ -123,6 +125,13 @@
                     <input type="text" id="open-answer" placeholder="Točna riječ/odgovor" class="w-full p-2 rounded-lg bg-slate-950 text-sm">
                 </div>
 
+                <!-- Polja za AI Foto Zadatak -->
+                <div id="field-photo-ai" class="hidden border-l-2 border-purple-500 pl-3 space-y-2">
+                    <label class="block text-xs font-bold text-purple-400 uppercase">🤖 AI Riječ za Prepoznavanje (Engleski)</label>
+                    <input type="text" id="ai-target" placeholder="npr. dog, cat, car, tree, chair, banana" class="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm">
+                    <p class="text-[10px] text-slate-400">Napišite naziv objekta na engleskom koji AI mora pronaći na uslikanoj slici.</p>
+                </div>
+
                 <button onclick="addStep()" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-xl">+ Dodaj Korak</button>
             </div>
 
@@ -138,11 +147,8 @@
             <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
                 <h3 class="text-xl font-black text-emerald-400">🎉 Avantura Objavljena!</h3>
                 <p class="text-xs text-slate-300">Skenirajte QR kod mobitelom ili kopirajte ID ispod:</p>
-                
                 <div id="qrcode" class="flex justify-center p-4 bg-white rounded-xl"></div>
-                
                 <p id="published-id-display" class="font-mono text-amber-400 font-bold text-lg"></p>
-                
                 <button onclick="copyPublishedCode()" class="w-full bg-slate-700 text-white py-2 rounded-xl text-sm font-bold">Kopiraj Kod Za Mobitel</button>
                 <button onclick="closeQRModal()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Zatvori</button>
             </div>
@@ -191,15 +197,20 @@
                     <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
                 </div>
 
-                <!-- FOTO ZADATAK -->
+                <!-- FOTO ZADATAK SA AI PROVJEROM -->
                 <div id="play-photo-container" class="hidden space-y-3">
-                    <label class="block p-4 bg-slate-950 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500">
-                        <span class="text-2xl">📸</span>
-                        <p class="text-xs text-slate-400 mt-1">Kliknite za otvaranje kamere i slikanje</p>
+                    <label class="block p-4 bg-slate-950 border-2 border-dashed border-purple-500/50 rounded-xl cursor-pointer hover:border-purple-400">
+                        <span class="text-3xl">📸🤖</span>
+                        <p class="text-xs text-purple-300 font-bold mt-1">Uslikajte objekt za AI analizu</p>
                         <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" class="hidden">
                     </label>
+
+                    <div id="ai-status" class="hidden p-3 bg-purple-950/50 border border-purple-500/30 rounded-xl text-xs text-purple-300 font-mono">
+                        ⏳ AI model analizira sliku...
+                    </div>
+
                     <div id="photo-preview-container" class="hidden">
-                        <img id="photo-preview" class="w-full max-h-48 object-cover rounded-xl border border-emerald-500">
+                        <img id="photo-preview" class="w-full max-h-48 object-cover rounded-xl border border-purple-500">
                     </div>
                 </div>
 
@@ -220,6 +231,13 @@
         let hasAlertedArrival = false;
         let html5QrCode = null;
         let currentRawData = '';
+        let aiModel = null;
+
+        // Učitavanje TensorFlow AI modela u pozadini
+        mobilenet.load().then(model => {
+            aiModel = model;
+            console.log("AI Model spreman!");
+        });
 
         function showScreen(screen) {
             document.getElementById('screen-home').classList.add('hidden');
@@ -234,11 +252,13 @@
             document.getElementById('field-location').classList.add('hidden');
             document.getElementById('field-quiz-mc').classList.add('hidden');
             document.getElementById('field-quiz-open').classList.add('hidden');
+            document.getElementById('field-photo-ai').classList.add('hidden');
             document.getElementById('field-points').classList.remove('hidden');
 
             if (type === 'location') document.getElementById('field-location').classList.remove('hidden');
             if (type === 'quiz-mc') document.getElementById('field-quiz-mc').classList.remove('hidden');
             if (type === 'quiz-open') document.getElementById('field-quiz-open').classList.remove('hidden');
+            if (type === 'photo') document.getElementById('field-photo-ai').classList.remove('hidden');
             if (type === 'info') document.getElementById('field-points').classList.add('hidden');
         }
 
@@ -247,8 +267,6 @@
             const text = document.getElementById('step-text').value.trim();
             const image = document.getElementById('step-image').value.trim();
             const points = type === 'info' ? 0 : (parseInt(document.getElementById('step-points').value) || 0);
-
-            if(!text && !image && type !== 'photo') return alert('Morate unijeti tekst, sliku ili odabrati foto zadatak!');
 
             let step = { type, text, image, points };
 
@@ -260,6 +278,8 @@
                 step.correct = parseInt(document.getElementById('mc-correct').value);
             } else if (type === 'quiz-open') {
                 step.answer = document.getElementById('open-answer').value.trim().toLowerCase();
+            } else if (type === 'photo') {
+                step.aiTarget = document.getElementById('ai-target').value.trim().toLowerCase();
             }
 
             tempSteps.push(step);
@@ -283,7 +303,6 @@
             currentRawData = JSON.stringify(newHunt);
             localStorage.setItem(huntId, currentRawData);
 
-            // Generiranje QR Koda
             document.getElementById('qrcode').innerHTML = '';
             new QRCode(document.getElementById("qrcode"), {
                 text: currentRawData,
@@ -307,7 +326,7 @@
             document.getElementById('qr-modal').classList.add('hidden');
         }
 
-        // --- QR SKENER (POČETNA) ---
+        // --- QR SKENER ---
         function startQRScanner() {
             document.getElementById('qr-reader-container').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("qr-reader");
@@ -357,7 +376,7 @@
 
         function renderStep() {
             const step = currentHunt.steps[currentStepIndex];
-            hasAlertedArrival = false; // Reset signala za dolazak
+            hasAlertedArrival = false;
             
             document.getElementById('play-image-container').classList.add('hidden');
             document.getElementById('play-location-container').classList.add('hidden');
@@ -365,6 +384,7 @@
             document.getElementById('play-open-container').classList.add('hidden');
             document.getElementById('play-photo-container').classList.add('hidden');
             document.getElementById('photo-preview-container').classList.add('hidden');
+            document.getElementById('ai-status').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
 
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
@@ -393,21 +413,55 @@
             }
         }
 
-        function handlePhotoUpload(e) {
+        // --- AI PREPOZNAVANJE SLIKE ---
+        async function handlePhotoUpload(e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    document.getElementById('photo-preview').src = event.target.result;
-                    document.getElementById('photo-preview-container').classList.remove('hidden');
-                    
-                    const step = currentHunt.steps[currentStepIndex];
+            if (!file) return;
+
+            const imgElement = document.getElementById('photo-preview');
+            const aiStatus = document.getElementById('ai-status');
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                imgElement.src = event.target.result;
+                document.getElementById('photo-preview-container').classList.remove('hidden');
+                aiStatus.classList.remove('hidden');
+                aiStatus.innerText = "⏳ AI model analizira sliku...";
+
+                const step = currentHunt.steps[currentStepIndex];
+
+                // Ako nema definiranog AI cilja, priznaje se automatski
+                if (!step.aiTarget) {
+                    aiStatus.innerText = "✅ Slika prihvaćena!";
                     totalScore += step.points;
                     document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
                     document.getElementById('next-btn').classList.remove('hidden');
+                    return;
                 }
-                reader.readAsDataURL(file);
+
+                if (!aiModel) {
+                    aiStatus.innerText = "⚠️ AI model se još učitava, pričekajte trenutak...";
+                    return;
+                }
+
+                // AI klasifikacija slike
+                const predictions = await aiModel.classify(imgElement);
+                console.log("AI Prepoznato:", predictions);
+
+                // Provjera sadrži li ijedan AI rezultat traženu riječ
+                const found = predictions.some(p => p.className.toLowerCase().includes(step.aiTarget));
+
+                if (found) {
+                    aiStatus.innerHTML = `🎉 <span class="font-bold text-emerald-400">AI Prepoznao: ${step.aiTarget}!</span> +${step.points} pt`;
+                    totalScore += step.points;
+                    document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+                    document.getElementById('next-btn').classList.remove('hidden');
+                } else {
+                    const topGuess = predictions[0] ? predictions[0].className.split(',')[0] : 'nepoznato';
+                    aiStatus.innerHTML = `❌ AI vidi: <span class="font-bold text-red-400">${topGuess}</span>. Pokušajte ponovno uslikati (${step.aiTarget})!`;
+                }
             }
+            reader.readAsDataURL(file);
         }
 
         function checkMC(idx) {
@@ -445,12 +499,11 @@
         // --- ZVUK & VIBRACIJA ---
         function playArrivalBeep() {
             if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
-            
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Note D5
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
                 osc.connect(ctx.destination);
                 osc.start();
                 osc.stop(ctx.currentTime + 0.3);
@@ -492,7 +545,6 @@
             const dist = getDistance(userLat, userLng, step.lat, step.lng);
             document.getElementById('distance-display').innerText = `${Math.round(dist)} m`;
 
-            // Signal kada stiže na cilj (manje od 10 metara)
             if (dist <= 10 && !hasAlertedArrival) {
                 hasAlertedArrival = true;
                 playArrivalBeep();
