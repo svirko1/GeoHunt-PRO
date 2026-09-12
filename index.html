@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoHunt PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteka za QR Skener -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Biblioteka za Generiranje QR Koda -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         .compass-arrow {
             transition: transform 0.1s linear;
@@ -31,13 +35,27 @@
             <div class="space-y-2">
                 <span class="text-5xl">🧭</span>
                 <h2 class="text-3xl font-black">GeoHunt PRO</h2>
-                <p class="text-slate-400 text-sm">Unesite ID ili zalijepite kod avanture stvoren na PC-u!</p>
+                <p class="text-slate-400 text-sm">Skenirajte QR kod ili unesite kod avanture!</p>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
+                <button onclick="startQRScanner()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center space-x-2">
+                    <span>📷</span> <span>Skeniraj QR Kod Avanture</span>
+                </button>
+
+                <div id="qr-reader-container" class="hidden my-2 p-2 bg-slate-950 rounded-xl border border-slate-700">
+                    <div id="qr-reader" class="w-full overflow-hidden rounded-lg"></div>
+                    <button onclick="stopQRScanner()" class="mt-2 text-xs text-red-400 font-bold underline">Zatvori Skener</button>
+                </div>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-700"></div>
+                    <span class="flex-shrink mx-4 text-slate-500 text-xs font-bold uppercase">ili ručno</span>
+                    <div class="flex-grow border-t border-slate-700"></div>
+                </div>
+
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase text-left mb-1">ID ili Kod Avanture</label>
-                    <input type="text" id="game-id-input" placeholder="Upišite ID (npr. GH-1234) ili zalijepite kod" class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono focus:outline-none focus:border-emerald-500">
+                    <input type="text" id="game-id-input" placeholder="Upišite ID ili zalijepite kod" class="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono focus:outline-none focus:border-emerald-500">
                 </div>
                 <button onclick="loadGame()" class="w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Započni Igru 🚀</button>
             </div>
@@ -59,12 +77,13 @@
                         <option value="location">Tajno Odredište (Kompas + Udaljenost)</option>
                         <option value="quiz-mc">Pitanje s ponuđenim odgovorima</option>
                         <option value="quiz-open">Pitanje otvorenog tipa</option>
+                        <option value="photo">Foto Zadatak (Slikanje kamerom)</option>
                         <option value="info">Info Slajd (Samo slika/tekst)</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa (Opcionalno)</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Tekst / Pitanje / Uputa</label>
                     <textarea id="step-text" placeholder="Unesite tekst..." class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-white h-20"></textarea>
                 </div>
 
@@ -114,6 +133,21 @@
             <button onclick="publishHunt()" class="w-full bg-emerald-500 text-slate-950 font-black py-4 rounded-2xl text-lg">Objavi Avanturu 🎯</button>
         </div>
 
+        <!-- MODAL ZA OBJAVLJENI QR KOD -->
+        <div id="qr-modal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl text-center space-y-4 max-w-sm w-full">
+                <h3 class="text-xl font-black text-emerald-400">🎉 Avantura Objavljena!</h3>
+                <p class="text-xs text-slate-300">Skenirajte QR kod mobitelom ili kopirajte ID ispod:</p>
+                
+                <div id="qrcode" class="flex justify-center p-4 bg-white rounded-xl"></div>
+                
+                <p id="published-id-display" class="font-mono text-amber-400 font-bold text-lg"></p>
+                
+                <button onclick="copyPublishedCode()" class="w-full bg-slate-700 text-white py-2 rounded-xl text-sm font-bold">Kopiraj Kod Za Mobitel</button>
+                <button onclick="closeQRModal()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Zatvori</button>
+            </div>
+        </div>
+
         <!-- 3. GAMEPLAY EKRAN -->
         <div id="screen-game" class="hidden space-y-5 my-auto">
             <div class="flex justify-between items-center bg-slate-800 p-3.5 rounded-2xl border border-slate-700">
@@ -125,12 +159,10 @@
             </div>
 
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-4">
-                <!-- KONTEJNER ZA SLIKU -->
                 <div id="play-image-container" class="hidden my-2">
                     <img id="play-image" src="" class="w-full max-h-60 object-cover rounded-xl border border-slate-700 shadow-md">
                 </div>
 
-                <!-- TEKST SLAJDA -->
                 <p id="play-text" class="text-lg font-bold text-slate-100"></p>
 
                 <!-- KOMPAS -->
@@ -159,6 +191,18 @@
                     <button onclick="checkOpenAnswer()" class="w-full bg-emerald-500 text-slate-950 font-black py-3 rounded-xl">Potvrdi Odgovor</button>
                 </div>
 
+                <!-- FOTO ZADATAK -->
+                <div id="play-photo-container" class="hidden space-y-3">
+                    <label class="block p-4 bg-slate-950 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-500">
+                        <span class="text-2xl">📸</span>
+                        <p class="text-xs text-slate-400 mt-1">Kliknite za otvaranje kamere i slikanje</p>
+                        <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" class="hidden">
+                    </label>
+                    <div id="photo-preview-container" class="hidden">
+                        <img id="photo-preview" class="w-full max-h-48 object-cover rounded-xl border border-emerald-500">
+                    </div>
+                </div>
+
                 <!-- GUMB DALJE -->
                 <button id="next-btn" onclick="nextStep()" class="hidden w-full bg-emerald-500 text-slate-950 font-black py-3.5 rounded-xl text-lg">Dalje ➡️</button>
             </div>
@@ -173,12 +217,16 @@
         let totalScore = 0;
         let userLat = null, userLng = null;
         let deviceHeading = 0;
+        let hasAlertedArrival = false;
+        let html5QrCode = null;
+        let currentRawData = '';
 
         function showScreen(screen) {
             document.getElementById('screen-home').classList.add('hidden');
             document.getElementById('screen-editor').classList.add('hidden');
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById(`screen-${screen}`).classList.remove('hidden');
+            stopQRScanner();
         }
 
         function toggleEditorFields() {
@@ -200,7 +248,7 @@
             const image = document.getElementById('step-image').value.trim();
             const points = type === 'info' ? 0 : (parseInt(document.getElementById('step-points').value) || 0);
 
-            if(!text && !image) return alert('Morate unijeti barem tekst ili sliku!');
+            if(!text && !image && type !== 'photo') return alert('Morate unijeti tekst, sliku ili odabrati foto zadatak!');
 
             let step = { type, text, image, points };
 
@@ -222,7 +270,7 @@
 
         function updateEditorList() {
             const list = document.getElementById('editor-steps-list');
-            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text || 'Slika'} (+${s.points} pt)</li>`).join('');
+            list.innerHTML = tempSteps.map((s, i) => `<li class="bg-slate-950 p-2 rounded">${i+1}. [${s.type}] ${s.text || 'Zadatak'} (+${s.points} pt)</li>`).join('');
         }
 
         function publishHunt() {
@@ -232,12 +280,56 @@
             const huntId = 'GH-' + Math.floor(1000 + Math.random() * 9000);
             const newHunt = { id: huntId, title, steps: tempSteps };
             
-            const rawData = JSON.stringify(newHunt);
-            localStorage.setItem(huntId, rawData);
+            currentRawData = JSON.stringify(newHunt);
+            localStorage.setItem(huntId, currentRawData);
 
-            prompt(`🎉 Avantura objavljena!\n\nID: ${huntId}\n\nKopirajte donji kod i zalijepite ga na mobitelu u polje za ID:`, rawData);
+            // Generiranje QR Koda
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), {
+                text: currentRawData,
+                width: 180,
+                height: 180
+            });
+
+            document.getElementById('published-id-display').innerText = `ID: ${huntId}`;
+            document.getElementById('qr-modal').classList.remove('hidden');
+
             tempSteps = [];
             showScreen('home');
+        }
+
+        function copyPublishedCode() {
+            navigator.clipboard.writeText(currentRawData);
+            alert('Kod avanture je kopiran u međuspremnik!');
+        }
+
+        function closeQRModal() {
+            document.getElementById('qr-modal').classList.add('hidden');
+        }
+
+        // --- QR SKENER (POČETNA) ---
+        function startQRScanner() {
+            document.getElementById('qr-reader-container').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    document.getElementById('game-id-input').value = decodedText;
+                    stopQRScanner();
+                    loadGame();
+                },
+                (errorMessage) => {}
+            );
+        }
+
+        function stopQRScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode = null;
+                    document.getElementById('qr-reader-container').classList.add('hidden');
+                }).catch(() => {});
+            }
         }
 
         function loadGame() {
@@ -245,11 +337,11 @@
             if(!input) return alert('Unesite ID ili Kod!');
 
             let data = localStorage.getItem(input);
-            if(!data && input.startsWith('{')) {
+            if(!data && (input.startsWith('{') || input.startsWith('GH-'))) {
                 data = input; 
             }
 
-            if(!data) return alert('Avantura nije pronađena! Zalijepite kod avanture stvoren na PC-u.');
+            if(!data) return alert('Avantura nije pronađena!');
 
             currentHunt = JSON.parse(data);
             currentStepIndex = 0;
@@ -265,17 +357,19 @@
 
         function renderStep() {
             const step = currentHunt.steps[currentStepIndex];
+            hasAlertedArrival = false; // Reset signala za dolazak
             
             document.getElementById('play-image-container').classList.add('hidden');
             document.getElementById('play-location-container').classList.add('hidden');
             document.getElementById('play-mc-container').classList.add('hidden');
             document.getElementById('play-open-container').classList.add('hidden');
+            document.getElementById('play-photo-container').classList.add('hidden');
+            document.getElementById('photo-preview-container').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
 
             document.getElementById('game-progress').innerText = `${currentStepIndex + 1}/${currentHunt.steps.length}`;
             document.getElementById('play-text').innerText = step.text || '';
 
-            // Prikaz slike ako postoji
             if (step.image) {
                 document.getElementById('play-image').src = step.image;
                 document.getElementById('play-image-container').classList.remove('hidden');
@@ -292,8 +386,27 @@
                 `).join('');
             } else if(step.type === 'quiz-open') {
                 document.getElementById('play-open-container').classList.remove('hidden');
+            } else if(step.type === 'photo') {
+                document.getElementById('play-photo-container').classList.remove('hidden');
             } else if(step.type === 'info') {
                 document.getElementById('next-btn').classList.remove('hidden');
+            }
+        }
+
+        function handlePhotoUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('photo-preview').src = event.target.result;
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                    
+                    const step = currentHunt.steps[currentStepIndex];
+                    totalScore += step.points;
+                    document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+                    document.getElementById('next-btn').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
             }
         }
 
@@ -329,7 +442,22 @@
             }
         }
 
-        // --- GEOLOKACIJA & KOMPAS SENZORI ---
+        // --- ZVUK & VIBRACIJA ---
+        function playArrivalBeep() {
+            if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+            
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Note D5
+                osc.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        // --- GEOLOKACIJA & KOMPAS ---
         function initGPSAndCompass() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(pos => {
@@ -338,7 +466,6 @@
                     updateCompassUI();
                 }, null, { enableHighAccuracy: true });
             }
-
             window.addEventListener('deviceorientation', handleOrientation, true);
         }
 
@@ -353,11 +480,8 @@
         }
 
         function handleOrientation(e) {
-            if (e.webkitCompassHeading) {
-                deviceHeading = e.webkitCompassHeading;
-            } else if (e.alpha !== null) {
-                deviceHeading = 360 - e.alpha;
-            }
+            if (e.webkitCompassHeading) deviceHeading = e.webkitCompassHeading;
+            else if (e.alpha !== null) deviceHeading = 360 - e.alpha;
             updateCompassUI();
         }
 
@@ -367,6 +491,12 @@
 
             const dist = getDistance(userLat, userLng, step.lat, step.lng);
             document.getElementById('distance-display').innerText = `${Math.round(dist)} m`;
+
+            // Signal kada stiže na cilj (manje od 10 metara)
+            if (dist <= 10 && !hasAlertedArrival) {
+                hasAlertedArrival = true;
+                playArrivalBeep();
+            }
 
             const targetBearing = getBearing(userLat, userLng, step.lat, step.lng);
             const arrowAngle = targetBearing - deviceHeading;
