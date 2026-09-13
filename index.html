@@ -16,6 +16,10 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+    <!-- Firebase SDK (App & Realtime Database) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
     <style>
         .theme-default { background-color: #0f172a; color: #f8fafc; }
         .theme-pirate { background-color: #2a1a08; color: #fef3c7; }
@@ -130,7 +134,7 @@
                 <h3 class="font-bold text-slate-200">Pridruži se Timskoj Sobi</h3>
                 <p class="text-xs text-slate-400">Unesite kod sobe koji ste dobili od domaćina kako biste se spojili u natjecanje.</p>
                 
-                <input type="text" id="input-join-code" placeholder="Unesite kod sobe (npr. A8K9P2)" maxlength="6" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl font-mono uppercase tracking-widest text-amber-400 font-bold placeholder:font-sans placeholder:font-normal uppercase">
+                <input type="text" id="input-join-code" placeholder="Unesite kod sobe (npr. A8K9P2)" maxlength="6" class="w-full p-2.5 text-xs bg-slate-950 border border-slate-700 rounded-xl font-mono uppercase tracking-widest text-amber-400 font-bold placeholder:font-sans placeholder:font-normal">
                 <button onclick="joinLobbyByCode()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs">Uđi u Sobu 🚀</button>
                 <p id="join-status-msg" class="text-xs hidden font-bold text-center mt-1"></p>
             </div>
@@ -458,6 +462,21 @@
 
     <!-- APLIKACIJSKA LOGIKA (JAVASCRIPT) -->
     <script>
+        // FIREBASE INICIJALIZACIJA
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
         // Bedževi
         const badgeList = [
             { id: 'pioneer', name: 'Pionir', icon: '🧭' },
@@ -523,7 +542,9 @@
                 nav_teams: "Timski",
                 nav_editor: "Editor",
                 nav_leaderboard: "Rang",
-                nav_profile: "Profil"
+                nav_profile: "Profil",
+                enter_id: "Unesite ID avanture!",
+                invalid_id: "Nevažeći ili nepostojeći ID avanture!"
             },
             en: {
                 unregistered: "Guest",
@@ -575,7 +596,9 @@
                 nav_teams: "Teams",
                 nav_editor: "Editor",
                 nav_leaderboard: "Rank",
-                nav_profile: "Profile"
+                nav_profile: "Profile",
+                enter_id: "Enter Hunt ID!",
+                invalid_id: "Invalid or non-existent Hunt ID!"
             },
             de: {
                 unregistered: "Gast",
@@ -627,7 +650,9 @@
                 nav_teams: "Teams",
                 nav_editor: "Editor",
                 nav_leaderboard: "Rang",
-                nav_profile: "Profil"
+                nav_profile: "Profil",
+                enter_id: "Geben Sie die Abenteuer-ID ein!",
+                invalid_id: "Ungültige oder nicht vorhandene Abenteuer-ID!"
             }
         };
 
@@ -658,6 +683,18 @@
             fetchWeather();
             renderExploreList();
             renderLeaderboard();
+
+            // Automatsko pokretanje preko URL parametra ?id=GH-XXXX
+            const urlParams = new URLSearchParams(window.location.search);
+            const huntIdFromURL = urlParams.get('id');
+
+            if (huntIdFromURL) {
+                const inputElement = document.getElementById('game-id-input');
+                if (inputElement) {
+                    inputElement.value = huntIdFromURL;
+                }
+                loadGame();
+            }
         };
 
         function changeLanguage(lang) {
@@ -671,6 +708,11 @@
                     elem.innerText = translations[lang][key];
                 }
             });
+        }
+
+        function generateShareableLink(huntId) {
+            const baseURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            return `${baseURL}?id=${huntId}`;
         }
 
         function showScreen(screen) {
@@ -888,7 +930,6 @@
             document.getElementById('lobby-code-display').innerText = activeRoomCode;
             document.getElementById('lobby-active').classList.remove('hidden');
 
-            // Pohranjujemo sobu u lokalni spremnik za simulaciju spajanja
             const roomData = { huntId, createdBy: currentUser ? currentUser.username : 'Host', teams: ['Glavni Tim (Vi)'] };
             localStorage.setItem('gh_room_' + activeRoomCode, JSON.stringify(roomData));
 
@@ -1012,13 +1053,19 @@
             const jsonString = JSON.stringify(newHunt);
             localStorage.setItem(huntId, jsonString);
 
+            // Spremanje u Firebase Realtime Database
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                firebase.database().ref('hunts/' + huntId).set(newHunt).catch(err => console.error("Firebase spremanje greška:", err));
+            }
+
             document.getElementById('qrcode').innerHTML = '';
-            new QRCode(document.getElementById("qrcode"), { text: jsonString, width: 160, height: 160 });
+            new QRCode(document.getElementById("qrcode"), { text: generateShareableLink(huntId), width: 160, height: 160 });
             
             document.getElementById('published-id-display').innerHTML = `
                 <div class="text-xs text-slate-400 mb-1">ID: <span class="text-emerald-400 font-bold">${huntId}</span></div>
-                <textarea readonly onclick="this.select()" class="w-full p-2 text-[10px] bg-slate-950 border border-slate-700 rounded text-amber-300 font-mono h-20">${jsonString}</textarea>
-                <p class="text-[10px] text-slate-400 mt-1">Skenirajte QR kod ili kopirajte gornji tekst za igranje!</p>
+                <input type="text" readonly value="${generateShareableLink(huntId)}" onclick="this.select()" class="w-full p-2 text-[10px] bg-slate-950 border border-slate-700 rounded text-amber-300 font-mono mb-2">
+                <textarea readonly onclick="this.select()" class="w-full p-2 text-[10px] bg-slate-950 border border-slate-700 rounded text-amber-300 font-mono h-16">${jsonString}</textarea>
+                <p class="text-[10px] text-slate-400 mt-1">Skenirajte QR kod ili kopirajte poveznicu za igranje!</p>
             `;
             
             document.getElementById('qr-modal').classList.remove('hidden');
@@ -1043,7 +1090,11 @@
             document.getElementById('qr-reader-container').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("qr-reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (scannedText) => {
-                document.getElementById('game-id-input').value = scannedText;
+                let extractedId = scannedText;
+                if(scannedText.includes('?id=')) {
+                    extractedId = scannedText.split('?id=')[1].split('&')[0];
+                }
+                document.getElementById('game-id-input').value = extractedId;
                 stopQRScanner();
                 loadGame();
             }, () => {});
@@ -1058,38 +1109,8 @@
             }
         }
 
-        function loadGame() {
-            const input = document.getElementById('game-id-input').value.trim();
-            if(!input) return alert('Unesite ID ili zalijepite kod avanture!');
-
-            let data = null;
-
-            if (input.startsWith('{') && input.endsWith('}')) {
-                try {
-                    const parsed = JSON.parse(input);
-                    if (parsed.steps && Array.isArray(parsed.steps)) {
-                        data = input;
-                    }
-                } catch(e) {}
-            }
-
-            if (!data) {
-                data = localStorage.getItem(input);
-            }
-
-            if (!data) {
-                alert('Avantura nije pronađena na uređaju. Pokreće se demo igra.');
-                data = JSON.stringify({
-                    id: input, title: 'Demo Gusarska Avantura', theme: 'pirate',
-                    steps: [
-                        { type: 'info', text: 'Dobrodošli u tajnu piratsku rutu!', itemReward: 'Starinska Karta' },
-                        { type: 'safe', text: 'Otvorite brodski sef! Unesite šifru 1234', safeCode: '1234', points: 30, timer: 45, hintText: 'Šifra je 1234', hintCost: 5 },
-                        { type: 'quiz-open', text: 'Koji je glavni grad Hrvatske?', answer: 'zagreb', points: 20 }
-                    ]
-                });
-            }
-
-            currentHunt = JSON.parse(data);
+        function startGameWithData(parsedData, huntId) {
+            currentHunt = parsedData;
             currentStepIndex = 0;
             totalScore = 0;
             userInventory = [];
@@ -1100,9 +1121,66 @@
             
             document.getElementById('game-title-display').innerText = currentHunt.title;
             document.getElementById('score-display').innerText = `⭐ ${totalScore}`;
+            
+            if (huntId) {
+                const newURL = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + huntId;
+                window.history.pushState({ path: newURL }, '', newURL);
+            }
+
             showScreen('game');
             renderStep();
             initGPSAndCompass();
+        }
+
+        function loadGame() {
+            const input = document.getElementById('game-id-input').value.trim();
+            if(!input) return alert(translations[currentLang].enter_id || 'Unesite ID ili zalijepite kod avanture!');
+
+            // 1. Provjera je li unesen izravni JSON
+            if (input.startsWith('{') && input.endsWith('}')) {
+                try {
+                    const parsed = JSON.parse(input);
+                    if (parsed.steps && Array.isArray(parsed.steps)) {
+                        startGameWithData(parsed, parsed.id);
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // 2. Provjera lokalnog spremnika (LocalStorage)
+            const localData = localStorage.getItem(input);
+            if (localData) {
+                try {
+                    const parsed = JSON.parse(localData);
+                    startGameWithData(parsed, input);
+                    return;
+                } catch(e) {}
+            }
+
+            // 3. Provjera u Firebase Realtime Database
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                firebase.database().ref('hunts/' + input).once('value').then((snapshot) => {
+                    if (snapshot.exists()) {
+                        startGameWithData(snapshot.val(), input);
+                    } else {
+                        // 4. Fallback na demo igru ako nije pronađena
+                        alert(translations[currentLang].invalid_id || 'Avantura nije pronađena. Pokreće se demo igra.');
+                        const demoData = {
+                            id: input, title: 'Demo Gusarska Avantura', theme: 'pirate',
+                            steps: [
+                                { type: 'info', text: 'Dobrodošli u tajnu piratsku rutu!', itemReward: 'Starinska Karta' },
+                                { type: 'safe', text: 'Otvorite brodski sef! Unesite šifru 1234', safeCode: '1234', points: 30, timer: 45, hintText: 'Šifra je 1234', hintCost: 5 },
+                                { type: 'quiz-open', text: 'Koji je glavni grad Hrvatske?', answer: 'zagreb', points: 20 }
+                            ]
+                        };
+                        startGameWithData(demoData, input);
+                    }
+                }).catch(() => {
+                    alert('Greška pri povezivanju s bazom.');
+                });
+            } else {
+                alert(translations[currentLang].invalid_id || 'Avantura nije pronađena.');
+            }
         }
 
         function renderStep() {
